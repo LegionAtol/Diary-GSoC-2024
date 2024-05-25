@@ -1,4 +1,4 @@
-# Welcome to my GSoC 2024 diary 👋
+# Welcome To My GSoC 2024 Diary 👋
 Here I will keep track of my journey and the work I will do to complete a project for QuTiP.
 
 [QuTiP](https://qutip.org/index.html) (Quantum Toolbox in Python) is an open-source software for simulating the dynamics of open quantum systems.
