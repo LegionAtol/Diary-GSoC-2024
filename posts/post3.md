@@ -52,4 +52,33 @@ If $\gamma \to 1$, the problem becomes more complex because future rewards also 
 With $\gamma = 1$, it is a simple sum of future rewards.  
 Note that $\gamma$ is not a hyperparameter to be "tuned"; instead, it depends on the type of problem at hand.  
 
-(continued soon...)
+### Policy
+The policy defines the actions the agent should take in various situations.  
+A **Deterministic Policy** $\pi(s)=a$ is a function that describes with certainty, given a state, the action the agent will take. It can be described with a table of states and actions.  
+More generally, a **Stochastic Policy** $\pi(s|a)$ is often used as a function that maps each state $s$ to the probability of executing a certain action $a$.  
+It can also be used to represent a Deterministic Policy, which is a special case where the probability = 1.  
+
+It is called a **Markovian Policy** if the Markov property holds; otherwise, it is called a **Non-Markovian Policy**.  
+
+Generally, we consider **Stationary Policies**, meaning they do not change over time.  
+
+Now let's look at two fundamental concepts in RL.  
+### Value Function
+Also known as the **State-Value Function**, it represents the expected reward that an agent can obtain starting from a state $s$ and following a given policy $\pi$.  
+$V_\pi(s) = E_\pi [ G_t | S_t = s ] =
+E_\pi [\sum\limits_{k=1}^{\infty} \gamma^k R_{t+k+1} | S_t=s]$  
+As can be inferred from the definition, this function is useful for evaluating one policy against another.  
+
+### Action Function
+Also known as the **State-Action Function**, it represents the expected reward that an agent can obtain starting from a state $s$, performing an initial action $a$, and then following a certain policy $\pi$.  
+$Q_\pi(s,a) = E_\pi [ G_t | S_t = s, A_t = a ] =
+E_\pi [\sum\limits_{k=1}^{\infty} \gamma^k R_{t+k+1} | S_t=s, A_t=a]$  
+The Action function is useful for comparing the effects of different actions in a state.  
+(img chess)  
+
+The $V$ and $Q$ functions are connected; the State-Value function can be obtained from the Action-Value function as follows:  
+$V_\pi(s) = \sum\limits_a \pi(a|s) Q_\pi(s, a)$  
+In practice, the $V$ function can be seen as a weighted sum of the Action-Value function of the possible actions in that state.  
+The weighting is given by the probability with which the policy chooses each action in that state.
+
+(continued soon)
