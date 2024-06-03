@@ -40,8 +40,8 @@ $r(s,a)=E[R_{t+1}|S_t=s, A_t=a]$ is the expected value of the reward that can be
 
 ### Episodic Task
 Episodic tasks represent the concept of agent-environment interaction as a series of states, actions, and rewards.  
-A single instance defined by certain states, actions, and rewards that concludes in a terminal state is called an **Episode**.
-(img)  
+A single instance defined by certain states, actions, and rewards that concludes in a terminal state is called an **Episode**.  
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/ce7cdee9-8b6a-4911-ada1-3296f86dd0d0" alt="image" width="450"/>  
 
 ### Return
 What matters to the agent is not just the immediate reward but the long-term reward.  
@@ -74,11 +74,50 @@ Also known as the **State-Action Function**, it represents the expected reward t
 $Q_\pi(s,a) = E_\pi [ G_t | S_t = s, A_t = a ] =
 E_\pi [\sum\limits_{k=1}^{\infty} \gamma^k R_{t+k+1} | S_t=s, A_t=a]$  
 The Action function is useful for comparing the effects of different actions in a state.  
-(img chess)  
+(imagine playing chess and having to compare what the best action might be, given a certain state/configuration of the game)  
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/419f85bf-6ebe-4828-b063-c93eeae6df25" alt="image" width="250"/>  
 
 The $V$ and $Q$ functions are connected; the State-Value function can be obtained from the Action-Value function as follows:  
 $V_\pi(s) = \sum\limits_a \pi(a|s) Q_\pi(s, a)$  
 In practice, the $V$ function can be seen as a weighted sum of the Action-Value function of the possible actions in that state.  
 The weighting is given by the probability with which the policy chooses each action in that state.
 
-(continued soon)
+Suppose we have the following `example` with 4 states A, B, C, and D and a policy that moves randomly with a certain value of $\gamma$.   
+The reward I get is 0 everywhere except for actions that take me to state B, where the reward is 5.  
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/513bec28-549f-4ce9-a183-8bc17190246a" alt="image" width="250"/>  
+
+If I try to calculate the Value function using the definition $V_\pi(s) = E_\pi [\sum\limits_{k=1}^{\infty} \gamma^k R_{t+k+1} | S_t=s]$ it wouldn't be very useful because I would have an infinite sum.  
+I can rewrite the $V$ and $Q$ functions in the following way.  
+
+### Bellman Equation
+Observing that the Return $G_t = R_t + \gamma R_{t+1} + \gamma^2 R_{t+2} + \dots =
+R_t + \gamma(R_{t+1} + \gamma R_{t+2} + \dots)$  
+The Value function can be decomposed into the immediate reward plus the discounted value of successor states.  
+$V_\pi(s) = E_\pi[R_{t} + \gamma G_{t+1} | S_t=s]$  
+To emphasize that $R_{t}$ is the reward obtained after performing the action, it is denoted as $R_{t+1}$  
+$V_\pi(s) = E_\pi[R_{t+1} + \gamma V_\pi(S_{t+1}) | S_t=s]$  
+Which can be rewritten as  
+$V_\pi(s) = \sum\limits_a \pi(s|a) [r(s|a) + \gamma \sum\limits_{s'} p(s'|s,a) V_\pi (s')]$  
+$s'$ denotes the next state.  
+
+Similarly, for the Action-Value function, I get
+$Q_\pi(s,a) = E_\pi[R_{t+1} + \gamma V_\pi(S_{t+1}) | S_t=s, A_t=a]$  
+$= r(s,a) + \gamma \sum\limits_{s'} p(s'|s,a) V_\pi(s') =
+r(s,a) + \gamma \sum\limits_{s'} p(s'|s,a) \sum\limits_{a'} \pi(a'|s') Q_\pi(s',a')$  
+Where I have used the fact that $V$ and $Q$ are connected as seen.  
+Note that both are **recursive** formulas.
+
+Returning to the previous `example`, I can write the Value function for state A using the new recursive form  
+$V_\pi(s) = \frac{1}{4}(5 + \gamma V_\pi(B)) + \frac{1}{4}(0 + \gamma V_\pi(C)) + \frac{1}{4}(0 + \gamma V_\pi(A) + \frac{1}{4}(0 + \gamma V_\pi(A)))$  
+Similarly, I write the V function for the other states, $V(B), V(C), V(D)$.  
+Thus, I obtain a **linear system** of 4 equations and 4 unknowns that is solvable.  
+
+This was just a simple example, but real problems are much more complex, just think about increasing the number of states in the previous example. It would become **computationally infeasible**.  
+We will see the solution to this problem shortly when we talk about DP and the update rule in policy evaluation.
+
+### Optimal Policy
+Now, let's see how to find an optimal policy, often denoted as $\pi^*$  
+A policy $\pi$ is said to be greater than or equal to $\pi'$ if and only if $V_\pi(s) \ge V_{\pi'}(s), \forall(s)$  
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/dad5d1d7-3e27-4665-ae01-d66d1e460d20" alt="image" width="250"/>  
+
+
