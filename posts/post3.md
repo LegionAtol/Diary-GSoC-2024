@@ -1,6 +1,14 @@
-Machine Learning (ML) is an alternative to traditional programming where a program is designed to learn from data, extracting relevant information or patterns autonomously, without explicit instructions.  
+To better understand this theoretical part I suggest the following points:
+- Have knowledge of mathematics (Mathematical Analysis 1)
+- Have knowledge of probability and statistics
+- Read the topics in sequence because I will use concepts and notations expressed previously
+- Imagining simple and concrete examples where applying the formulas can help  
 
-There are three main paradigms:
+With that said, let's get started!
+
+**Machine Learning** (ML) is an alternative to traditional programming where a program is designed to learn from data, extracting relevant information or patterns autonomously, without explicit instructions.  
+
+There are three main **paradigms**:
 - Supervised Learning
 - Unsupervised Learning
 - Reinforcement Learning
