@@ -128,4 +128,29 @@ Now, let's see how to find an optimal policy, often denoted as $\pi^*$
 A policy $\pi$ is said to be greater than or equal to $\pi'$ if and only if $V_\pi(s) \ge V_{\pi'}(s), \forall(s)$  
 <img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/dad5d1d7-3e27-4665-ae01-d66d1e460d20" alt="image" width="250"/>  
 
+For every MDP, there exists at least one **optimal deterministic policy** $\pi^\*$ that is better than or equal to all others ($\pi^\* \ge \pi$)
+To understand this, one can observe the graph above and think that given two policies $\pi_1$ and $\pi_2$, I can always create a third policy that acts like $\pi_1$ where it is better than $\pi_2$, otherwise it acts like $\pi_2$.  
+
+One might think that to find the optimal policy, it would suffice to try all of them (which we know exists thanks to the theorem just seen).  
+For problems with few states and actions, this might be feasible, but for large problems, we have $|A|^{|S|}$ (where A is the finite set of actions and S is the set of states) possible deterministic policies, making it computationally impossible.  
+
+### Bellman Optimality Equation
+**Bellman Optimality Equation for $V^\*$** with $V^\*(s) = \max\limits_{\pi} V_\pi(s)$  
+$V^\*(s) = \sum\limits_a \pi^\*(a|s)[r(s,a) + \gamma \sum\limits_{s'} p(s'|s,a) V^\*(s')]$  
+In the formula, $\pi^*$ appears, which we don't know, but from the previous theorem, we know that at least one deterministic policy exists. I can consider the action that maximizes the sum, obtaining  
+$V^\*(s) = \max\limits_a (r(s,a) + \gamma \sum\limits_{s'} p(s'|s,a) V^\*(s'))$  
+
+**Bellman Optimality Equation for $Q^*$** with $Q^\* = \max\limits_\pi Q_\pi(s,a), \forall(s), \forall(a)$
+Similarly to before, we have  
+$Q^\*(s,a) = r(s,a) + \gamma \sum\limits_{s'} p(s'|s,a) \sum\limits_{a'} \pi^\*(a'|s') Q^\*(s',a')$  
+$= r(s,a) + \gamma \sum\limits_{s'} p(s'|s,a) \max\limits_{a'}Q^\*(s',a')$  
+
+Note that in these new formulas, $\pi^\*$ does not appear, which we do not know.  
+Moreover, now I can calculate the optimal policy $\pi^\*$ if I know $V^\*$ and $Q^\*$  
+$\pi^\*(s) = \mathrm{\arg \max_a} Q^\*(s,a) = \arg \max_a (r(s,a) + \gamma \sum\limits_{s'} p(s'|s,a) V^\*(s'))$  
+Where I used $\max\limits_a Q^\*(s,a) = V^\*(s)$
+
+Therefore, as seen in the previous example, the idea would be to create a linear system using the Bellman Optimality Equation $V^\*(s)$ and solve it.  
+The problem is that now it is **no longer a linear system**, there's the max!
+The solution will be to use DP (Dynamic Programming).  
 
