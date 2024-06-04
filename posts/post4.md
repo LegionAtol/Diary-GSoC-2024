@@ -11,6 +11,7 @@ the idea is to use it iteratively, obtaining the following **Update Rule**:
 $V_{k+1}(s) \leftarrow \sum\limits_a \pi(s|a) [r(s,a) + \gamma \sum\limits_{s'} p(s'|s,a) V_k (s')]$  
 At each iteration k, $V_k$ is updated for all states $s$.  
 $V_0 \rightarrow V_1 \rightarrow V_2 \rightarrow V_3 \rightarrow \dots \rightarrow V_k \rightarrow \dots \rightarrow V_\pi$  
+
 As $k \to \infty$, $V_k$ converges to $V_\pi$.  
 Note that it does not converge to the optimal policy; this is only the policy evaluation phase, and we are not modifying the given policy.  
 With this Update Rule, we have solved the problem seen in the previous post of obtaining large linear systems to evaluate the Value function.  
