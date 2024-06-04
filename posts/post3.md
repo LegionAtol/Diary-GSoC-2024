@@ -105,7 +105,7 @@ $V_\pi(s) = E_\pi[R_{t} + \gamma G_{t+1} | S_t=s]$
 To emphasize that $R_{t}$ is the reward obtained after performing the action, it is denoted as $R_{t+1}$  
 $V_\pi(s) = E_\pi[R_{t+1} + \gamma V_\pi(S_{t+1}) | S_t=s]$  
 Which can be rewritten as  
-$V_\pi(s) = \sum\limits_a \pi(s|a) [r(s|a) + \gamma \sum\limits_{s'} p(s'|s,a) V_\pi (s')]$  
+$V_\pi(s) = \sum\limits_a \pi(s|a) [r(s,a) + \gamma \sum\limits_{s'} p(s'|s,a) V_\pi (s')]$  
 $s'$ denotes the next state.  
 
 Similarly, for the Action-Value function, I get
