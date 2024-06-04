@@ -16,4 +16,5 @@ If you are interested in the stages of the project's development, take a look at
 ## Posts 📝
 1. [The beginning](posts/post1.md)
 2. [Community bonding period](posts/post2.md)
-3. [RL theory](posts/post3.md)
+3. [Introduction to Reinforcement Learning (RL)](posts/post3.md)
+4. [Dynamic Programming (DP)](posts/post4.md)
