@@ -24,8 +24,8 @@ Two common tasks are Clustering and Dimensionality Reduction.
 (img)
 
 ## Reinforcement Learning
-Different from the previous ones, RL is based on a try-error process. The agent interacts with the environment through actions (a), receives feedback through rewards (r), and ends up in a new state (s'), and so on. It is useful for problems where decisions must be made in sequence; essentially, the agent does not know the best action to take at each moment but has a long-term goal to achieve.  
-(img agent and environment)
+Different from the previous ones, RL is based on a try-error process. The agent interacts with the environment through actions (a), receives feedback through rewards ($r_{t+1}$), and ends up in a new state ($s'$ or $s_{t+1}$), and so on. It is useful for problems where decisions must be made in sequence; essentially, the agent does not know the best action to take at each moment but has a long-term goal to achieve.  
+<img width="410" alt="img" src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/4688e9e7-ec52-4196-9ac6-7a5bb947f0a3" width="400">  
 
 Here, I will delve deeper into RL as it seems to be the most interesting technique for my project. We will explore the theory behind the main techniques: Dynamic Programming(DP), Monte Carlo(MC), and Temporal DIfference(TD).  
 I will also aim to provide an intuitive and practical understanding of the formulas.  
