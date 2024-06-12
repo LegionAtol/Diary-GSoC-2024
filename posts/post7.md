@@ -159,6 +159,6 @@ Sometimes there are noticeable spikes downwards, and there are several factors t
 
 
 - The REINFORCE algorithm can still be subject to high variance.
-- The policy selects actions in a stochastic manner, meaning it might choose non-optimal actions.
+- The policy selects actions in a stochastic manner, meaning it might choose non-optimal actions (to ensure some exploration).
 - The number of neurons, the learning rate, and in general, the hyperparameters can be changed.
 - More sophisticated policies could be used, such as the soft ϵ-greedy policy.
