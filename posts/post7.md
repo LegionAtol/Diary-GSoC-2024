@@ -161,4 +161,43 @@ Sometimes there are noticeable spikes downwards, and there are several factors t
 - The REINFORCE algorithm can still be subject to high variance.
 - The policy selects actions in a stochastic manner, meaning it might choose non-optimal actions (to ensure some exploration).
 - The number of neurons, the learning rate, and in general, the hyperparameters can be changed.
-- More sophisticated policies could be used, such as the soft ϵ-greedy policy.
+- More sophisticated policies could be used, such as the soft ϵ-greedy policy.  
+
+### With Gymnasium and Stable Baselines3
+As seen [Gymnasium](https://gymnasium.farama.org) is useful for using environments or creating custom environments.  
+This integrates well with [Stable Baselines3](https://stable-baselines3.readthedocs.io/en/master/index.html) which provides various RL algorithms in PyTorch.  
+
+We can recreate the example above in a faster way, this time using the Advantage Actor-Critic (A2C) algorithm with a policy called "MlpPolicy" (based on a multi-layer perceptron neural network)  
+
+install the following packages:
+```python
+pip install gymnasium
+pip install stable_baselines3
+pip install pygame 
+pip install opencv-python   
+```
+
+The program to run:
+```python
+import gymnasium as gym
+from stable_baselines3 import A2C
+
+# Creating the environment
+env = gym.make("CartPole-v1", render_mode="rgb_array")
+
+# create a A2C model using MlpPolicy policy
+model = A2C("MlpPolicy", env, verbose=1)
+# model training to improve policy
+model.learn(total_timesteps=10_000)
+
+vec_env = model.get_env()
+obs = vec_env.reset()
+# loop to test the trained model
+for i in range(1000):
+    action, _state = model.predict(obs, deterministic=True)
+    obs, reward, done, info = vec_env.step(action)
+    vec_env.render("human") # renderizzo l'ambiente
+    # VecEnv resets automatically
+    # if done:
+    #   obs = vec_env.reset() 
+```
