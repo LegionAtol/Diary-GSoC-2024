@@ -34,7 +34,7 @@ Then there is a target policy, which is greedy, used to update the Value functio
 
 As seen in DP, with Value Iteration, similarly here we combine the two phases of evaluation and improvement, we obtain:  
 $Q(S_t,A_t) \leftarrow Q(S_t,A_t) + \alpha(R_{t+1} + \gamma \max\limits_a Q(S_{t+1},a) - Q(S_t,A_t))$  
-Note that Q does not have the subscript $\pi$ to highlight the off-policy nature, in fact the greedy (max) action is selected, the policy for choosing the next action is not followed.  
+Note the off-policy nature, in fact the greedy (max) action is selected, the policy for choosing the next action is not followed.  
 
 The optimal (target) policy in the end will be:  
 $\pi(s) = \arg\max_a Q(s,a)$  
