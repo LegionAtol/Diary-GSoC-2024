@@ -34,6 +34,10 @@ but $Q_\pi(s,a) \sim Avg[G_t|S_t=s,A_t=a]$
 Starting from a state $s$, we should consider an action $a$ that leads to a certain "branch"(red in the image below) that will have a return G in the episode, we should therefore average these returns of this branch for the various episodes. But this must be done for every action starting from $s$ and for every state $s$.  
 This means that, in theory, one should explore all possible actions for each state (all pairs (s,a)) to ensure having all possible episodes and then find the optimal policy, which would take too much time.  
 <img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/2db56d59-672f-4d31-9ac2-254ec75145ba" alt="image" width="450"/>  
+Alternatively you can use the Update Rule:   
+$Q(s,a) \leftarrow Q(s,a) + \alpha(G_t - Q(s,a))$  
+To be updated every time there is a new return $G_t$ for the pair $(s,a)$.  
+
 To ensure **exploration** in less time, one could use the **Exploring Starts** method, which consists of setting the initial (s,a) pair randomly for each episode.  
 However, it is not always possible to randomly set this initial pair, which is why it is useful to adopt the following policy.  
 
