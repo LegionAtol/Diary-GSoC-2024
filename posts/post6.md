@@ -20,8 +20,9 @@ However, TD has lower variance.
 
 Similarly, we have:  
 $Q(S_t,A_t) \leftarrow Q(S_t,A_t) + \alpha [R_{t+1} + \gamma Q(S_{t+1},A_{t+1}) - Q(S_t,A_t)]$  
-with $Q_\pi(s,a)=Avg[G_t|S_t=s,A_t=a]$ and  
-$G_t \sim R_{t+1} + \gamma Q(S_{t+1},A_{t+1})$  
+
+(or from the definition: $Q_\pi(s,a)=Avg[G_t|S_t=s,A_t=a]$ and  
+$G_t \sim R_{t+1} + \gamma Q(S_{t+1},A_{t+1})$ )  
 
 ### Policy Improvement
 As seen in MC, we have $\pi'(s) = \arg \max_a Q_\pi(s,a)$ and the ε-greedy policy.  
