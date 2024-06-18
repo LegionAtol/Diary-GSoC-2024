@@ -41,13 +41,16 @@ To be updated every time there is a new return $G_t$ for the pair $(s,a)$.
 In DP, we saw the formula  
 $\pi'(s) = \arg \max_a (r(s,a) + \gamma \sum\limits_{s'} p(s'|s,a) V_\pi(s'))$  
 However, here we do not have $r(s,a)$ and the one-step dynamic $p(s'|s,a)$.  
-We simply consider the best action:  
+We could simply consider the best action at each step with the following formula:  
 $\pi'(s) = \arg \max_a Q_\pi(s,a)$  
+But as said before, we should have all the pairs of $(s,a)$ to have a good result, but it would become infeasible...  
+So to guarantee a good result you can use the following: 
+
+**ε-Soft Policy**
+In particular, we use an **ε-greedy policy**, which selects each action with a probability of at least $\frac{\epsilon}{|A|}$.  
+$\pi(s|a) = \arg \max_a Q_\pi(s,a)$ with $\frac{\epsilon}{|A|} + 1 - \epsilon$ probability  
+Otherwise $\pi(s|a) =$ another action, with probability $\frac{\epsilon}{|A|}$  
+The more $\epsilon \to 1$, the more exploration is done (i.e., selecting actions that, according to current knowledge, are not the best but could be, which is the exploration-exploitation dilemma).
 
 **Policy Iteration**: 
 By alternating between policy evaluation (update rule) and policy improvement, you will converge to the optimal policy.  
-
-### ε-Soft Policy
-In particular, we use an **ε-greedy policy**, which selects each action with a probability of at least $\frac{\epsilon}{|A|}$.  
-$\pi(s|a) = \frac{\epsilon}{|A|} + 1 - \epsilon ,$ if $a=a^\*$. Otherwise $\pi(s|a) = \frac{\epsilon}{|A|}$  
-The more $\epsilon \to 1$, the more exploration is done (i.e., selecting actions that, according to current knowledge, are not the best but could be, which is the exploration-exploitation dilemma).
