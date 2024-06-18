@@ -48,8 +48,9 @@ So to guarantee a good result you can use the following:
 
 **ε-Soft Policy**
 In particular, we use an **ε-greedy policy**, which selects each action with a probability of at least $\frac{\epsilon}{|A|}$.  
-$\pi(s) = \arg \max_a Q_\pi(s,a)$ with $\frac{\epsilon}{|A|} + 1 - \epsilon$ probability  
-Otherwise $\pi(s) =$ another action, with probability $\frac{\epsilon}{|A|}$  
+Also as you progress you can decrease the value of $\epsilon$.  
+$\pi'(s) = \arg \max_a Q_\pi(s,a)$ with $\frac{\epsilon}{|A|} + 1 - \epsilon$ probability  
+Otherwise $\pi'(s) =$ another action, with probability $\frac{\epsilon}{|A|}$  
 The more $\epsilon \to 1$, the more exploration is done (i.e., selecting actions that, according to current knowledge, are not the best but could be, which is the exploration-exploitation dilemma).
 
 **Policy Iteration**: 
