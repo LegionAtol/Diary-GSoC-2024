@@ -25,7 +25,7 @@ $Q(S_t,A_t) \leftarrow Q(S_t,A_t) + \alpha [R_{t+1} + \gamma Q(S_{t+1},A_{t+1}) 
 $G_t \sim R_{t+1} + \gamma Q(S_{t+1},A_{t+1})$ )  
 
 ### Policy Improvement
-As seen in MC, we have $\pi'(s) = \arg \max_a Q_\pi(s,a)$ and the ε-greedy policy.  
+As seen in MC, we have $\pi'(s)$ select the action with a ε-greedy policy.  
 
 ## Q-Learning
 It is a famous **off-policy** method, aiming to decouple the data collection process from policy training.  
