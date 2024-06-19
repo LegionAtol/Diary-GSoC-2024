@@ -145,23 +145,23 @@ class GymQubitEnv(gym.Env):
         return x, y
 
     def create_init_state(noise, n_par):
-    dim = 2
-    psi_x, psi_y = torch.zeros((n_par,dim), dtype=torch.float, device=device), torch.zeros((n_par,dim), dtype=torch.float, device=device)
-    if noise:
-        # Note that theta [0, 2pi] is biased towards the poles
-        # theta	=	cos^(-1)(2v-1) with v on [0,1]
-        theta = torch.acos(torch.zeros((n_par,), dtype=torch.float, device=device).uniform_(-1.0, 1.0))
-        phi = torch.zeros((n_par,), dtype=torch.float, device=device).uniform_(0.0, 2*np.pi)
-
-        psi_x[:, 0] += torch.cos(theta / 2) # real part of coefficient of |up>
-        psi_x[:, 1] += torch.sin(theta / 2)*torch.cos(phi) # real part of coefficient of |down>
-
-        psi_y[:, 0] += torch.zeros_like(theta)  # imag part of coefficient of |up>
-        psi_y[:, 1] += torch.sin(theta / 2)*torch.sin(phi)
-    else:
-        psi_x[:, 0], psi_y[:, 0] = 1, 0 #1, 0 # |up>
-
-    return psi_x, psi_y
+        dim = 2
+        psi_x, psi_y = torch.zeros((n_par,dim), dtype=torch.float, device=device), torch.zeros((n_par,dim), dtype=torch.float, device=device)
+        if noise:
+            # Note that theta [0, 2pi] is biased towards the poles
+            # theta	=	cos^(-1)(2v-1) with v on [0,1]
+            theta = torch.acos(torch.zeros((n_par,), dtype=torch.float, device=device).uniform_(-1.0, 1.0))
+            phi = torch.zeros((n_par,), dtype=torch.float, device=device).uniform_(0.0, 2*np.pi)
+    
+            psi_x[:, 0] += torch.cos(theta / 2) # real part of coefficient of |up>
+            psi_x[:, 1] += torch.sin(theta / 2)*torch.cos(phi) # real part of coefficient of |down>
+    
+            psi_y[:, 0] += torch.zeros_like(theta)  # imag part of coefficient of |up>
+            psi_y[:, 1] += torch.sin(theta / 2)*torch.sin(phi)
+        else:
+            psi_x[:, 0], psi_y[:, 0] = 1, 0 #1, 0 # |up>
+    
+        return psi_x, psi_y
 
 if __name__ == '__main__':
     env = GymQubitEnv(seed=100)
