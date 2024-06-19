@@ -20,5 +20,6 @@ If you are interested in the stages of the project's development, take a look at
 4. [Dynamic Programming (DP)](posts/post4.md)
 5. [Monte Carlo (MC)](posts/post5.md)
 6. [Temporal DIfference (TD)](posts/post6.md)
-7. [REINFORCE algorithm](posts/post7.md)
+7. [REINFORCE algorithm and Gymnasium](posts/post7.md)
+8. [Qubit Example](posts/post8.md)
 
