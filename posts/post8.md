@@ -10,7 +10,7 @@ This will allow us to be modular and scalable: we can add other environments "wr
 ## Qubit environment from the paper
 Let's briefly look at the qubit state transfer example by examining the authors' code.  
 We are mainly interested in the file where the qubit (environment) is defined.  
-It starts from a random initial state and the goal is to reach a target state, which in this case is (0,1) or $| 1 \rangle$ or $|↑\rangle$.  
+It starts from a random initial state and the goal is to reach a target state, which in this case is (0,1) or $| 1 \rangle$ or $|↓\rangle$.  
 To achieve this, GRAPE can be used, but we will try with RL.  
 
 <img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/9680bc12-ae42-4c11-ad43-ef48ceda8f3c" alt="image" width="250"/>  
