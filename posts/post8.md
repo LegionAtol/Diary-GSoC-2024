@@ -43,11 +43,16 @@ You need to define a class that extends gym.Env
 The main methods and variables to rewrite are:  
 
 **\_init_** where we will define the main parameters  
-observation_space: defines the space of observable states, i.e., the shape and range of values that the environment can return as observation (x, y in the code, the state of the qubit).  
-x, y have the shape: (n_par, dim, 1) dim is the dimension of the Hilbert space (=2).  
-action_space: To define which actions (𝛼) the agent can take (𝛼 -> from -u_max, +u_max)  
-𝛼 should have the form (n_par, 1, 1).  
-n_par is the number of parallel simulations, to keep it simple, we keep it 1.  
+observation_space: defines the space of observable states, i.e., the shape and range of values that the environment can return as observation  
+action_space: To define which actions (𝛼) the agent can take (𝛼 -> from -u_max, +u_max)    
+
+**observation_space**  
+The observations returned by 'reset' and 'step' are valid elements of 'observation_space'.  
+From the [documentation](https://gymnasium.farama.org/api/spaces/#fundamental-spaces), it is recommended to use one of their Fundamental Spaces (for example 'Box' for continuous spaces, vectors of real numbers).  
+
+**action_space**  
+The Space object corresponding to valid actions, all valid actions should be contained within the space.  
+For this as well, it is advisable to use a Fundamental Space like 'Box'.  
 
 **step**(self, action): It accepts an action, computes the state of the environment after applying that action, and returns the 5-tuple (observation, reward, terminated, truncated, info).  
 Then we can check whether it is a terminal state and set the "terminated" signal accordingly.  
@@ -57,8 +62,28 @@ reset should be called whenever a "terminated" signal has been issued.
 
 **close**(self): Optional, to close the environment.
 
-For more information on these methods, see the [documentation](https://gymnasium.farama.org/api/env/#gymnasium.Env.step).  
+For more information on these methods, see the [documentation](https://gymnasium.farama.org/api/env/#gymnasium.Env).  
 
+Furthermore, to make the code more integrated with QuTiP, we can use the following:  
+
+**mesolve()**
+Instead of Heun function.  
+mesolve is a function in the QuTiP library used to solve the Lindblad master equation for open quantum systems or the von Neumann equation for closed systems.  
+The master equation describes the dynamics of a quantum system interacting with an external environment, which can include effects of decoherence and dissipation.  
+The function returns an instance of qutip.solver.Result.  
+The attribute 'expect' in 'result' is a list of expectation values for the operators included in the list in the fifth argument of mesolve().  
+If the list of operators is empty, it can return a list of state vectors (a list based on the time instances 'tlist').  
+For details, refer to the [documentation](https://qutip.org/docs/4.0.2/guide/dynamics/dynamics-master.html).  
+
+Represent ket states with QuTiP's **basis()** function.
+
+**rand_ket()** is used to create the random initial state.  
+
+For **fidelity** we can use the fidelity(A, B) function from QuTiP.  
+It works for both pure states (kets) and density matrices.  
+More information [here](https://qutip.org/docs/4.0.2/apidoc/functions.html#qutip.metrics.fidelity).  
+  
+   
 > [!CAUTION]
 > The code is still under construction
 
@@ -67,127 +92,104 @@ import gymnasium as gym
 from gymnasium import spaces
 import qutip as qu
 import numpy as np
-
-# PyTorch utilities
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+from stable_baselines3 import PPO
+from stable_baselines3.common.env_checker import check_env
 
 class GymQubitEnv(gym.Env):
-    def __init__(self, seed):
+    def __init__(self):
         super(GymQubitEnv, self).__init__()
         
-        # Define action and observation spaces
-        self.action_space = spaces.Box(low=-self.u_max, high=self.u_max, shape=(1,1,1), dtype=np.float32) # Box to define continuous actions space. 𝛼(action) is from -u_max to +u_max
-        self.observation_space = spaces.Box(low=-1, high=1, shape=(2 * dim,), dtype=np.float32)
-        
-        # Initialize qubit parameters
-        self.dt = 0.001  # time step
-        self.n_substeps = 20 # substeps in ODESolver
-        self.dim = 2 # dimension of Hilbert space
-        self.u_max = 2*np.pi*0.3 #(300 MHz)
-        self.w = 2*np.pi*3.9  # (GHz)
+        self.dim = 2  # dimension of Hilbert space
+        self.u_max = 2 * np.pi * 0.3  # (300 MHz)
+        self.w = 2 * np.pi * 3.9  # (GHz)
 
-        # for the reward
+        # Define action and observation spaces
+        self.action_space = spaces.Box(low=-self.u_max, high=self.u_max, shape=(1,), dtype=np.float32)  # Continuous action space from -u_max to +u_max
+        self.observation_space = spaces.Box(low=-1, high=1, shape=(4,), dtype=np.float32)  # Observation space, |v> have 2 real and 2 imaginary numbers -> 4
+
+        # Time step and substeps
+        self.dt = 0.001  # time step
+        self.n_substeps = 20  # substeps in ODE Solver
+
+        # Reward parameters
         self.C1 = 0.016
         self.C2 = 3.9e-06
         
-        # Target states and Hamiltonians
-        target_state = np.array([0.0, 1.0]) # |1>
-        self.target_x = torch.as_tensor(np.real(target_state), dtype=torch.float, device=device).view(1,1,self.dim)
-        self.target_y = torch.as_tensor(np.imag(target_state), dtype=torch.float, device=device).view(1,1,self.dim)
-        H_0 = self.w/2*qu.sigmaz()
-        H_1 = qu.sigmax()
-        self.H_0_dt = torch.as_tensor(np.real(H_0.full())*self.dt, dtype=torch.float, device=device)
-        self.H_1_dt = torch.as_tensor(np.real(H_1.full())*self.dt, dtype=torch.float, device=device)
+        # Target state |1>
+        self.target_state = qu.basis(self.dim, 1)
+        
+        # Hamiltonians
+        self.H_0 = self.w / 2 * qu.sigmaz()
+        self.H_1 = qu.sigmax()
 
         self.state = None
-        self.seed(seed)
+        self.seed = None
 
-    def seed(self, seed=None):
-        np.random.seed(seed)
-        torch.manual_seed(seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(seed)
+    #def seed(self, seed=None):
+    #    np.random.seed(seed)
 
     def step(self, action):
-        alpha = torch.clamp(torch.tensor(action, dtype=torch.float, device=device), min=-self.u_max, max=self.u_max).view(1, 1, 1)
-        x, y = self.state
-        for _ in range(self.n_substeps):
-            H = self.H_0_dt + alpha * self.H_1_dt
-            x, y = self.Heun(x, y, H)
-        fidelity = (torch.matmul(self.target_x, x)**2 + torch.matmul(self.target_x, y)**2).squeeze().item()
-        abs_alpha = (alpha**2).squeeze().item()
-        reward = self.C1*fidelity - self.C2*abs_alpha
-        #if t == max_episode_steps+1:
-        #    reward += C3*fidelity
-        self.state = x, y
+        alpha = action # the action is limited between -u_max , +u_max.
+        H = self.H_0 + alpha * self.H_1
+
+        result = qu.mesolve(H, self.state, [0, self.dt * self.n_substeps])
+        self.state = result.states[-1] # result.states returns a list of state vectors (kets), is a a Qobj object. let's take the last one.
+
+        fidelity = qu.fidelity(self.state, self.target_state)
+        reward = self.C1 * fidelity - self.C2 * (alpha ** 2)
+
+        observation = self._get_obs()
         terminated = False
         truncated = False
-        observation = self._get_obs()
-        return observation, reward, terminated, truncated, {}
 
-    def reset(self, noise=True):
-        psi_x, psi_y = create_init_state(noise, 1)
-        self.state = psi_x.view(1, self.dim, 1), psi_y.view(1, self.dim, 1)
-        return self._get_obs()
+        reward = float(reward.item())  # Ensure the reward is a float
+        #print("\n the reward is:",reward,"\n")
+        
+        return observation, reward, terminated, truncated, {"state": self.state}
 
+    def reset(self, seed=None, options=None):
+        if seed is not None:
+            self.seed = seed
+        self.state = self.create_init_state(noise=True)
+        return self._get_obs(), {}
+
+    # if state=(p q)' with p = a + i*b and q = c + i*d -> return [a, b, c, d]
     def _get_obs(self):
-        x, y = self.state
-        return torch.cat((x, y), 1).transpose(1, 2).cpu().numpy().flatten()
+        rho = self.state.full().flatten() # to have state vector as NumPy array and flatten into one dimensional array.[a+i*b c+i*d]
+        obs = np.concatenate((np.real(rho), np.imag(rho)))
+        return obs.astype(np.float32) # Gymnasium expects the observation to be of type float32
 
-    def Heun(self, x, y, H_dt):
-        f_x, f_y = torch.matmul(H_dt, y), -torch.matmul(H_dt, x)
-        x_tilde, y_tilde = x + f_x, y + f_y
-        x, y = x + 0.5 * (torch.matmul(H_dt, y_tilde) + f_x), y + 0.5 * (-torch.matmul(H_dt, x_tilde) + f_y)
-        return x, y
-
-    def create_init_state(noise, n_par):
-        dim = 2
-        psi_x, psi_y = torch.zeros((n_par,dim), dtype=torch.float, device=device), torch.zeros((n_par,dim), dtype=torch.float, device=device)
+    def create_init_state(self, noise):
         if noise:
-            # Note that theta [0, 2pi] is biased towards the poles
-            # theta	=	cos^(-1)(2v-1) with v on [0,1]
-            theta = torch.acos(torch.zeros((n_par,), dtype=torch.float, device=device).uniform_(-1.0, 1.0))
-            phi = torch.zeros((n_par,), dtype=torch.float, device=device).uniform_(0.0, 2*np.pi)
-    
-            psi_x[:, 0] += torch.cos(theta / 2) # real part of coefficient of |up>
-            psi_x[:, 1] += torch.sin(theta / 2)*torch.cos(phi) # real part of coefficient of |down>
-    
-            psi_y[:, 0] += torch.zeros_like(theta)  # imag part of coefficient of |up>
-            psi_y[:, 1] += torch.sin(theta / 2)*torch.sin(phi)
+            # initial random ket state
+            init_state = qu.rand_ket(self.dim)
         else:
-            psi_x[:, 0], psi_y[:, 0] = 1, 0 #1, 0 # |up>
-    
-        return psi_x, psi_y
+            init_state = qu.basis(self.dim, 0)  # |0>
+        return init_state
 
 if __name__ == '__main__':
-    env = GymQubitEnv(seed=100)
-    n_par = 3 # number of parallel simulations
-    state = env.reset()
-    for _ in range(10):
-        action = env.action_space.sample()
-        state, reward, done, info = env.step(action)
+    env = GymQubitEnv()
+
+    # Check if the environment follows Gym API
+    check_env(env, warn=True)
+
+    # Create the model
+    model = PPO('MlpPolicy', env, verbose=1)
+
+    # Train the model
+    model.learn(total_timesteps=10000)
+
+    # Test the model
+    obs, _ = env.reset()
+    for _ in range(100):
+        action, _states = model.predict(obs, deterministic=True)
+        obs, reward, terminated, truncated, info = env.step(action)
+        final_state = info["state"]
+        if terminated or truncated:
+            #obs, _ = env.reset()
+            break
         print(reward)
-    exit()
-```
-In another file, we can call the environment and use a Stable Baselines3 policy to train and test the model:  
 
-```python
-import env_qubit    # env_qubit.py environment file
-from stable_baselines3 import PPO
-
-env = GymQubitEnv(seed=42)
-
-model = PPO('MlpPolicy', env, verbose=1)
-model.learn(total_timesteps=10000)
-
-obs = env.reset()
-for _ in range(1000):
-    action, _states = model.predict(obs)
-    obs, rewards, terminated, truncated, info = env.step(action)
-    if terminated or truncated:
-        obs = env.reset()
+    print("\nFinal state of the system:")
+    print(final_state)
 ```
