@@ -92,6 +92,7 @@ import gymnasium as gym
 from gymnasium import spaces
 import qutip as qu
 import numpy as np
+import matplotlib.pyplot as plt
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 
@@ -104,12 +105,18 @@ class GymQubitEnv(gym.Env):
         self.w = 2 * np.pi * 3.9  # (GHz)
 
         # Define action and observation spaces
-        self.action_space = spaces.Box(low=-self.u_max, high=self.u_max, shape=(1,), dtype=np.float32)  # Continuous action space from -u_max to +u_max
+        #self.action_space = spaces.Box(low=-self.u_max, high=self.u_max, shape=(1,), dtype=np.float32)  # Continuous action space from -u_max to +u_max
+        self.action_space = spaces.Box(low=-self.u_max, high=self.u_max, shape=(1,), dtype=np.float32)  # Continuous action space from -1 to +1, as suggested from gym
         self.observation_space = spaces.Box(low=-1, high=1, shape=(4,), dtype=np.float32)  # Observation space, |v> have 2 real and 2 imaginary numbers -> 4
 
-        # Time step and substeps
-        self.dt = 0.001  # time step
-        self.n_substeps = 20  # substeps in ODE Solver
+        # time for mesolve()
+        self.times = np.linspace(0, 1, 100)
+
+        # threshold for fidelity to consider the target state reached
+        self.fidelity_threshold = 0.99 
+
+        self.current_step_in_the_episode = 0
+        self.max_steps = 150
 
         # Reward parameters
         self.C1 = 0.016
@@ -122,6 +129,11 @@ class GymQubitEnv(gym.Env):
         self.H_0 = self.w / 2 * qu.sigmaz()
         self.H_1 = qu.sigmax()
 
+        #for debugging
+        self.episode_reward = 0 
+        self.rewards = []
+        self.fidelities = []
+
         self.state = None
         self.seed = None
 
@@ -129,28 +141,40 @@ class GymQubitEnv(gym.Env):
     #    np.random.seed(seed)
 
     def step(self, action):
-        alpha = action # the action is limited between -u_max , +u_max.
+        alpha = action * self.u_max # the action is limited between -u_max , +u_max.
         H = self.H_0 + alpha * self.H_1
 
-        result = qu.mesolve(H, self.state, [0, self.dt * self.n_substeps])
+        result = qu.mesolve(H, self.state, self.times)
         self.state = result.states[-1] # result.states returns a list of state vectors (kets), is a a Qobj object. let's take the last one.
 
         fidelity = qu.fidelity(self.state, self.target_state)
         reward = self.C1 * fidelity - self.C2 * (alpha ** 2)
+        self.current_step_in_the_episode += 1
+        terminated = self.current_step_in_the_episode >= self.max_steps or fidelity >= self.fidelity_threshold
+
+        #for debugging
+        print(f"Step {self.current_step_in_the_episode}, Fidelity: {fidelity}")
+        self.episode_reward += reward
+        if terminated:
+            self.fidelities.append(fidelity) # keep the final episode fidelity
 
         observation = self._get_obs()
-        terminated = False
+        
         truncated = False
 
         reward = float(reward.item())  # Ensure the reward is a float
         #print("\n the reward is:",reward,"\n")
         
-        return observation, reward, terminated, truncated, {"state": self.state}
+        return observation, reward, bool(terminated), bool(truncated), {"state": self.state}
 
     def reset(self, seed=None, options=None):
         if seed is not None:
             self.seed = seed
         self.state = self.create_init_state(noise=True)
+        
+        self.rewards.append(self.episode_reward) # keep the episode rewards
+        self.episode_reward = 0  # Reset the episode reward
+        self.current_step_in_the_episode = 0  # Reset the step counter
         return self._get_obs(), {}
 
     # if state=(p q)' with p = a + i*b and q = c + i*d -> return [a, b, c, d]
@@ -177,19 +201,43 @@ if __name__ == '__main__':
     model = PPO('MlpPolicy', env, verbose=1)
 
     # Train the model
-    model.learn(total_timesteps=10000)
+    model.learn(total_timesteps=80000)
+
+    # For debugging
+    for i, (r, f) in enumerate(zip(env.rewards, env.fidelities), start=1):
+        print(f"Rewards for episode {i}: {r}")
+        if i % 50 == 0:
+            avg_fidelity = np.mean(env.fidelities[i-50:i])
+            print(f"Episode {i}, Avg fidelity of last 50 episodes: {avg_fidelity}")
 
     # Test the model
-    obs, _ = env.reset()
-    for _ in range(100):
-        action, _states = model.predict(obs, deterministic=True)
-        obs, reward, terminated, truncated, info = env.step(action)
-        final_state = info["state"]
-        if terminated or truncated:
-            #obs, _ = env.reset()
-            break
-        print(reward)
+    num_tests = 10 # Number of tests to perform
+    max_steps = 150 # max number of steps in eatch test
+    figures = []  # List to store the figures
+    target_state = qu.basis(2, 1)
 
-    print("\nFinal state of the system:")
-    print(final_state)
+    for test in range(num_tests):
+        print(f"\nTest {test + 1}")
+        obs, _ = env.reset()  # Reset the environment to get a random initial state
+        initial_state = env.state  # Save the initial state
+        
+        for _ in range(max_steps):
+            action, _states = model.predict(obs, deterministic=True)  # Get action from the model
+            obs, reward, terminated, truncated, info = env.step(action)  # Take a step in the environment
+            final_state = info["state"]  # Get the final state from the environment
+            if terminated or truncated:  # Check if the episode has ended
+                # Compute fidelity between final state and target state
+                fidelity = qu.fidelity(final_state, target_state)
+                print("Final Fidelity:", fidelity)
+                # Visualize on the Bloch sphere
+                b = qu.Bloch()
+                b.add_states(initial_state)
+                b.add_states(final_state)
+                fig = plt.figure()  # Create a new figure
+                b.fig = fig  # Assign the figure to the Bloch sphere
+                b.render()  # Render the Bloch sphere
+                figures.append(fig)  # Store the figure in the list
+                break  # Exit the loop if the episode has ended         
+    # Show all figures together
+    plt.show()
 ```
