@@ -131,14 +131,14 @@ class GymQubitEnv(gym.Env):
 
         #for debugging
         self.episode_reward = 0 
-        self.rewards = []
-        self.fidelities = []
+        self.rewards = []   # contains the cumulative reward of each episode
+        self.fidelities = []    # contains the final fidelity of each episode
 
         self.state = None
         self.seed = None
 
-    #def seed(self, seed=None):
-    #    np.random.seed(seed)
+        #def seed(self, seed=None):
+        #np.random.seed(seed)
 
     def step(self, action):
         alpha = action * self.u_max # the action is limited between -u_max , +u_max.
@@ -152,18 +152,17 @@ class GymQubitEnv(gym.Env):
         self.current_step_in_the_episode += 1
         terminated = self.current_step_in_the_episode >= self.max_steps or fidelity >= self.fidelity_threshold
 
+        reward = float(reward.item())  # Ensure the reward is a float
+
         #for debugging
         print(f"Step {self.current_step_in_the_episode}, Fidelity: {fidelity}")
         self.episode_reward += reward
         if terminated:
-            self.fidelities.append(fidelity) # keep the final episode fidelity
+            self.fidelities.append(fidelity) # keep the final fidelity
 
         observation = self._get_obs()
         
         truncated = False
-
-        reward = float(reward.item())  # Ensure the reward is a float
-        #print("\n the reward is:",reward,"\n")
         
         return observation, reward, bool(terminated), bool(truncated), {"state": self.state}
 
@@ -201,14 +200,17 @@ if __name__ == '__main__':
     model = PPO('MlpPolicy', env, verbose=1)
 
     # Train the model
-    model.learn(total_timesteps=80000)
-
+    model.learn(total_timesteps=300000)  #80000
+ 
     # For debugging
+    print("\n Summary of the trining:")
     for i, (r, f) in enumerate(zip(env.rewards, env.fidelities), start=1):
-        print(f"Rewards for episode {i}: {r}")
+        #print(f"Rewards for episode {i}: {r}")
         if i % 50 == 0:
+            avg_reward = np.mean(env.rewards[i-50:i])
             avg_fidelity = np.mean(env.fidelities[i-50:i])
-            print(f"Episode {i}, Avg fidelity of last 50 episodes: {avg_fidelity}")
+            print(f"Episode {i}, Avg reward of last 50 episodes: {avg_reward}")
+            print(f"Episode {i}, Avg fidelity of last 50 episodes: {avg_fidelity}\n")
 
     # Test the model
     num_tests = 10 # Number of tests to perform
