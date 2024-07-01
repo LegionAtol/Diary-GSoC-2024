@@ -106,7 +106,7 @@ class GymQubitEnv(gym.Env):
 
         # Define action and observation spaces
         #self.action_space = spaces.Box(low=-self.u_max, high=self.u_max, shape=(1,), dtype=np.float32)  # Continuous action space from -u_max to +u_max
-        self.action_space = spaces.Box(low=-self.u_max, high=self.u_max, shape=(1,), dtype=np.float32)  # Continuous action space from -1 to +1, as suggested from gym
+        self.action_space = spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32)  # Continuous action space from -1 to +1, as suggested from gym
         self.observation_space = spaces.Box(low=-1, high=1, shape=(4,), dtype=np.float32)  # Observation space, |v> have 2 real and 2 imaginary numbers -> 4
 
         # time for mesolve()
