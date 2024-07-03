@@ -110,13 +110,13 @@ class GymQubitEnv(gym.Env):
         self.observation_space = spaces.Box(low=-1, high=1, shape=(4,), dtype=np.float32)  # Observation space, |v> have 2 real and 2 imaginary numbers -> 4
 
         # time for mesolve()
-        self.times = np.linspace(0, 1, 100)
+        self.time_end = 0.02
 
         # threshold for fidelity to consider the target state reached
         self.fidelity_threshold = 0.99 
 
         self.current_step_in_the_episode = 0
-        self.max_steps = 150
+        self.max_steps = 500    # max episode length
 
         # Reward parameters
         self.C1 = 0.016
@@ -133,6 +133,9 @@ class GymQubitEnv(gym.Env):
         self.episode_reward = 0 
         self.rewards = []   # contains the cumulative reward of each episode
         self.fidelities = []    # contains the final fidelity of each episode
+        self.highest_fidelity = 0  # track the highest fidelity achieved
+        self.highest_fidelity_episode = 0  # track the episode where highest fidelity is achieved
+
 
         self.state = None
         self.seed = None
@@ -144,7 +147,7 @@ class GymQubitEnv(gym.Env):
         alpha = action * self.u_max # the action is limited between -u_max , +u_max.
         H = self.H_0 + alpha * self.H_1
 
-        result = qu.mesolve(H, self.state, self.times)
+        result = qu.mesolve(H, self.state, [0, self.time_end])
         self.state = result.states[-1] # result.states returns a list of state vectors (kets), is a a Qobj object. let's take the last one.
 
         fidelity = qu.fidelity(self.state, self.target_state)
@@ -155,10 +158,13 @@ class GymQubitEnv(gym.Env):
         reward = float(reward.item())  # Ensure the reward is a float
 
         #for debugging
-        print(f"Step {self.current_step_in_the_episode}, Fidelity: {fidelity}")
+        #print(f"Step {self.current_step_in_the_episode}, Fidelity: {fidelity}")
         self.episode_reward += reward
         if terminated:
             self.fidelities.append(fidelity) # keep the final fidelity
+            if fidelity > self.highest_fidelity:
+                self.highest_fidelity = fidelity  # update highest fidelity
+                self.highest_fidelity_episode = len(self.rewards) + 1  # update the episode number (since rewards are appended after reset)
 
         observation = self._get_obs()
         
@@ -184,8 +190,11 @@ class GymQubitEnv(gym.Env):
 
     def create_init_state(self, noise):
         if noise:
-            # initial random ket state
-            init_state = qu.rand_ket(self.dim)
+            # Initial slight variations of |0>
+            perturbation = 0.1 * (np.random.rand(self.dim) - 0.5) + 0.1j * (np.random.rand(self.dim) - 0.5) # to get something like: [0.03208387-0.01834318j 0.0498474 -0.0339512j ]
+            perturbation_qobj = qu.Qobj(perturbation, dims=[[self.dim], [1]])
+            init_state = qu.basis(self.dim, 0) + perturbation_qobj
+            init_state = init_state.unit()  # to ensure unitary norm
         else:
             init_state = qu.basis(self.dim, 0)  # |0>
         return init_state
@@ -200,7 +209,7 @@ if __name__ == '__main__':
     model = PPO('MlpPolicy', env, verbose=1)
 
     # Train the model
-    model.learn(total_timesteps=300000)  #80000
+    model.learn(total_timesteps=200000)  #80000
  
     # For debugging
     print("\n Summary of the trining:")
@@ -212,9 +221,12 @@ if __name__ == '__main__':
             print(f"Episode {i}, Avg reward of last 50 episodes: {avg_reward}")
             print(f"Episode {i}, Avg fidelity of last 50 episodes: {avg_fidelity}\n")
 
+    print(f"Highest fidelity achieved during training: {env.highest_fidelity}")
+    print(f"Highest fidelity was achieved in episode: {env.highest_fidelity_episode}")
+
     # Test the model
     num_tests = 10 # Number of tests to perform
-    max_steps = 150 # max number of steps in eatch test
+    max_steps = 500 # max number of steps in eatch test
     figures = []  # List to store the figures
     target_state = qu.basis(2, 1)
 
