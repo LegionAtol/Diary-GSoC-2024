@@ -135,7 +135,8 @@ class GymQubitEnv(gym.Env):
         self.fidelities = []    # contains the final fidelity of each episode
         self.highest_fidelity = 0  # track the highest fidelity achieved
         self.highest_fidelity_episode = 0  # track the episode where highest fidelity is achieved
-
+        self.episode_actions = []  # Track actions for the current episode
+        self.actions = []  # Contains the actions taken in each episode
 
         self.state = None
         self.seed = None
@@ -157,17 +158,22 @@ class GymQubitEnv(gym.Env):
 
         reward = float(reward.item())  # Ensure the reward is a float
 
-        #for debugging
+        # for debugging
         #print(f"Step {self.current_step_in_the_episode}, Fidelity: {fidelity}")
         self.episode_reward += reward
+        self.episode_actions.append(action)
         if terminated:
             self.fidelities.append(fidelity) # keep the final fidelity
             if fidelity > self.highest_fidelity:
                 self.highest_fidelity = fidelity  # update highest fidelity
                 self.highest_fidelity_episode = len(self.rewards) + 1  # update the episode number (since rewards are appended after reset)
-
+            self.rewards.append(self.episode_reward) # keep the episode rewards
+            self.episode_reward = 0  # Reset the episode reward
+            self.current_step_in_the_episode = 0  # Reset the step counter
+            self.actions.append(self.episode_actions.copy()) # Append actions of the episode to the actions list
+            self.episode_actions = []  # Reset the actions for the new episode
+           
         observation = self._get_obs()
-        
         truncated = False
         
         return observation, reward, bool(terminated), bool(truncated), {"state": self.state}
@@ -177,9 +183,8 @@ class GymQubitEnv(gym.Env):
             self.seed = seed
         self.state = self.create_init_state(noise=True)
         
-        self.rewards.append(self.episode_reward) # keep the episode rewards
-        self.episode_reward = 0  # Reset the episode reward
-        self.current_step_in_the_episode = 0  # Reset the step counter
+        #d
+
         return self._get_obs(), {}
 
     # if state=(p q)' with p = a + i*b and q = c + i*d -> return [a, b, c, d]
@@ -209,12 +214,13 @@ if __name__ == '__main__':
     model = PPO('MlpPolicy', env, verbose=1)
 
     # Train the model
-    model.learn(total_timesteps=200000)  #80000
+    model.learn(total_timesteps=50000)  #80000
  
     # For debugging
     print("\n Summary of the trining:")
     for i, (r, f) in enumerate(zip(env.rewards, env.fidelities), start=1):
         #print(f"Rewards for episode {i}: {r}")
+        print(f"Fidelity for episode {i}: {f}")
         if i % 50 == 0:
             avg_reward = np.mean(env.rewards[i-50:i])
             avg_fidelity = np.mean(env.fidelities[i-50:i])
@@ -223,6 +229,17 @@ if __name__ == '__main__':
 
     print(f"Highest fidelity achieved during training: {env.highest_fidelity}")
     print(f"Highest fidelity was achieved in episode: {env.highest_fidelity_episode}")
+
+    # plot actions of some episodes
+    num_episodes = len(env.actions)
+    indices = [9, 19, num_episodes - 11, num_episodes - 1]  # 10th, 20th, (final-10)th, final episodes
+    fig, axs = plt.subplots(4, 1, figsize=(10, 8))
+    for i, idx in enumerate(indices):
+        axs[i].plot(env.actions[idx])
+        axs[i].set_title(f'Episode {idx + 1}')
+        axs[i].set_xlabel('Step')
+        axs[i].set_ylabel('Action')
+    plt.tight_layout()
 
     # Test the model
     num_tests = 10 # Number of tests to perform
