@@ -206,6 +206,8 @@ In this section we see how to create a custom environment with Gymnasium and we 
 The environment in question is a 5x5 grid and an agent that must move in this 2 dim grid to reach a target state.  
 The allowed actions are up, down, right and left and you cannot leave the grid. The state to be reached is box (3,3)  
 
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/2f57beac-5925-44ab-bb76-e9f8369e9690" alt="image" width="700"/>
+
 To [define a custom environment in Gymnasium](https://gymnasium.farama.org/tutorials/gymnasium_basics/environment_creation/) the main things to do are:  
 Extend gym.Env, define an action space (to indicate which actions the agent can perform), define an observation space (the values ​​that the environment can return ), define the step method (will contain the program logic, the interaction between agent and environment) and define the reset method (called when an episode is concluded).  
 
