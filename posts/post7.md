@@ -201,3 +201,173 @@ for i in range(1000):
     # if done:
     #   obs = vec_env.reset() 
 ```
+### Custom Environment - GridWorld Example
+In this section we see how to create a custom environment with Gymnasium and we will use a Stablebaseline3 policy.  
+The environment in question is a 5x5 grid and an agent that must move in this 2 dim grid to reach a target state.  
+The allowed actions are up, down, right and left and you cannot leave the grid. The state to be reached is box (3,3)  
+
+To [define a custom environment in Gymnasium](https://gymnasium.farama.org/tutorials/gymnasium_basics/environment_creation/) the main things to do are:  
+Extend gym.Env, define an action space (to indicate which actions the agent can perform), define an observation space (the values ​​that the environment can return ), define the step method (will contain the program logic, the interaction between agent and environment) and define the reset method (called when an episode is concluded).  
+
+```python
+import gymnasium as gym
+from gymnasium import spaces
+import numpy as np
+from stable_baselines3 import PPO
+from stable_baselines3.common.env_checker import check_env
+import matplotlib.pyplot as plt
+
+class SimpleGrid2DEnv(gym.Env):
+    def __init__(self):
+        super(SimpleGrid2DEnv, self).__init__()
+        self.grid_size = 5
+        self.goal_position = (3, 3)
+        self.action_space = spaces.Discrete(4)  #0: up, 1: down, 2: left, 3: right
+        self.observation_space = spaces.Box(low=0, high=self.grid_size-1, shape=(2,), dtype=np.int32)
+        self.state = np.array([0, 0], dtype=np.int32)
+        
+        self.rewards = []  # All episodes rewards
+        self.cumulative_reward = 0  # Rewards for the current episode
+        self.max_steps = 50  # Maximum steps per episode
+        self.current_step = 0  # Current step in the episode
+        self.episodes_length = [] # Keep the number of steps used in each episode
+
+    def reset(self, seed=None, options=None):
+        if hasattr(self, 'cumulative_reward') and self.cumulative_reward != 0:  # Skip the first reset
+            self.rewards.append(self.cumulative_reward)
+        self.cumulative_reward = 0  # Reset the cumulative reward for the new episode
+        self.episodes_length.append(self.current_step)  # save the number of step used in each episode
+        self.current_step = 0  # Reset the step counter
+        self.state = np.array([0, 0], dtype=np.int32)
+        return self.state, {}
+
+    def step(self, action):
+        self.current_step += 1
+
+        if action == 0 and self.state[0] > 0:
+            self.state[0] -= 1
+        elif action == 1 and self.state[0] < self.grid_size - 1:
+            self.state[0] += 1
+        elif action == 2 and self.state[1] > 0:
+            self.state[1] -= 1
+        elif action == 3 and self.state[1] < self.grid_size - 1:
+            self.state[1] += 1
+
+        reward = 1 if tuple(self.state) == self.goal_position else -0.1
+        self.cumulative_reward += reward
+        terminated = tuple(self.state) == self.goal_position
+        truncated = self.current_step >= self.max_steps
+        #truncated = False
+        return self.state, reward, terminated, truncated, {}
+
+    def render(self, mode='human'):
+        grid = np.zeros((self.grid_size, self.grid_size), dtype=str)
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                if (i, j) == tuple(self.state):
+                    grid[i, j] = 'A'
+                elif (i, j) == self.goal_position:
+                    grid[i, j] = 'G'
+                else:
+                    grid[i, j] = '.'
+        print("\n".join(["".join(row) for row in grid]))
+        print()
+
+if __name__ == "__main__":
+    # Create the environment
+    env = SimpleGrid2DEnv()
+
+    # Check that the environment is valid
+    check_env(env, warn=True)
+
+    # Create PPO model
+    model = PPO("MlpPolicy", env, verbose=1)
+
+    # Train the model
+    model.learn(total_timesteps=15000)
+
+    # Save the model
+    #model.save("ppo_simple_grid_2d")
+
+    # Caricare il modello (opzionale)
+    #model = PPO.load("ppo_simple_grid_2d")
+
+    # Print the latest cumulative reward during training
+    if len(env.rewards) > 0:
+        print(f"Last cumulative reward during training is {env.rewards[-1]}")
+
+    test_rewards = []
+
+    for test in range(5):
+        # Test the trained agent
+        obs, _ = env.reset()
+        env.render()
+        for _ in range(20):
+            action, _states = model.predict(obs)
+            print(f"Test {test + 1}, Action: {action}")  # Debug print
+            obs, reward, terminated, truncated, info = env.step(action)
+            print(f"Test {test + 1}, State: {obs}, Reward: {reward}, Terminated: {terminated}, Truncated: {truncated}")  # Debug print
+            env.render()
+            if terminated or truncated:
+                break
+        
+        # Print the cumulative test episode reward
+        print(f"Cumulative reward of test {test + 1} is {env.cumulative_reward}")
+        test_rewards.append(env.cumulative_reward)
+
+    # Print all cumulative test rewards
+    print("Cumulative rewards for all tests:", test_rewards)
+
+    # Number of steps used in each episode
+    #print(f"Number of steps used in each epsiode:\n{env.episodes_length}")
+
+    # Create the reward chart during training
+    plt.plot(env.rewards, label='Cumulative Reward')
+    
+    # Highlight episodes with the highest reward
+    max_reward = max(env.rewards)
+    max_indices = [i for i, reward in enumerate(env.rewards) if reward == max_reward]
+    plt.scatter(max_indices, [env.rewards[i] for i in max_indices], color='red', label='Max Reward', zorder=5)
+
+    plt.xlabel('Episode')
+    plt.ylabel('Cumulative Reward')
+    plt.title('Cumulative Reward per Episode during Training')
+    plt.legend()
+    plt.show()
+```
+Note that the **reward function** is defined so as not only to be positive (for example reward = +1 if the target is reached, otherwise reward =0) but is also defined with a penalty term based on the number of steps it takes to reach the target state.  
+Designing an effective reward function for the problem is crucial in RL.  
+Running the code with : total_timesteps=10000  
+I obtained a cumulative reward graph like the following:  
+
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/f47e5963-6f6e-4e29-8391-9401d6b06a57" alt="image" width="900"/>
+
+After training, the model is saved and then reloaded to perform 5 tests by starting the agent in the same initial position.  
+I got:  
+Cumulative rewards for all tests: [0.4, 0.10000000000000009, -0.8000000000000005, -0.09999999999999987, -2.0000000000000004]  
+As you can see, the PPO agent still acts stochastically even if it starts from the same initial state.  
+We can say that yes, he has learned, but not yet very well...  
+However, we can see that the longer the training, the less stochastic it acts.  
+With a train of total_timesteps=15000 I got:  
+
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/e824e627-71be-4454-9319-287c62ba1fe1" alt="image" width="900"/>
+
+From the tests I got:
+Cumulative rewards for all tests: [0.5, 0.5, 0.3, 0.5, 0.5]
+Practically the probability of doing "exploration" is much lower, it is almost always selecting the best path found so far (which is not a local trap, but actually the best one).
+
+Those seen so far were without considering the **truncated signal** (just put in the step method, truncated=False always), this was possible because we have episodic tasks, i.e. the episode ends sooner or later because the agent will reach the target state.  
+All episodes ended with a **terminated signal**.  
+Using the truncated signal for example if a maximum number of steps is exceeded (for example max_steps = 50) during the episode, things change slightly (keeping total_timesteps=15000) as can also be seen from the graph:  
+
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/e165508e-3a1c-4629-a626-5c4da15c773d" alt="image" width="900"/>
+
+And the cumulative rewards for all tests: [0.5, 0.30000000000000004, -0.5000000000000002, 0.5, 0.5]  
+
+We can think of the Policy that the PPO agent learns as a "weighted average" in the sense that it considers all the episodes it has seen, but will give more value to those ending with higher rewards.  
+From what has been observed, it does not seem to make much sense to apply "restore best weight" or "Early stopping" techniques.  
+Another confirmation that the agent is learning is that as the training progresses, the episodes become less and less long, until the minimum number of steps to reach the target state is reached.  
+
+Note that episodes that end in a truncated signal are not discarded, but are still used differently to update the policy.  
+It might be useful to keep track of how many episodes are truncated and how many end correctly, so that the latter are the majority.  
+You can see the comparison of terimanted and truncated in the [documentation](https://gymnasium.farama.org/tutorials/gymnasium_basics/handling_time_limits/).
