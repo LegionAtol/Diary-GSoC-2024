@@ -354,7 +354,7 @@ With a train of total_timesteps=15000 I got:
 
 From the tests I got:
 Cumulative rewards for all tests: [0.5, 0.5, 0.3, 0.5, 0.5]
-Practically the probability of doing "exploration" is much lower, it is almost always selecting the best path found so far (which is not a local trap, but actually the best one).
+Practically the probability of doing "exploration" is much lower, it is almost always selecting the best path found so far, which starting from (0,0) consists of 6 steps to arrive at box (3,3) and therefore $-0.1 * 5 + 1 = 0.5$  
 
 Those seen so far were without considering the **truncated signal** (just put in the step method, truncated=False always), this was possible because we have episodic tasks, i.e. the episode ends sooner or later because the agent will reach the target state.  
 All episodes ended with a **terminated signal**.  
