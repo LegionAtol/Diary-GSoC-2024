@@ -326,3 +326,232 @@ As you can see, the number of steps used for each episode decreases until the mi
 
 This is the graph of the actions (alpha) taken during one of the last episodes of the training, in which it already reached fidelity > 99%  
 <img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/5129f124-915d-4f9e-a486-5212565d9534" alt="image" width="800"/>
+
+### State transfer - Not Gate
+You might think that to perform a different state transfer (for example Not Gate) you just need to compile the code above, modify the target state with |1> and start the training.  
+If you try to run the code like this you will notice that it doesn't work, the algorithm learns almost nothing during training (fidelity very different in each episode, it didn't grow constantly), almost all the episodes end with a truncated signal (because they reach the maximum number of steps) and the tests all have very low and different fidelity. 
+
+How is it possible?  
+
+If we look at the number of steps used in each episode:  
+[400, 400, 141, 400, 353, 341,...400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400]  
+Furthermore, by plotting the actions taken towards one of the last episodes, they appear almost random.
+
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/bcf0990d-01e0-441f-8522-e63c28a4739f" alt="image" width="800"/>
+
+We can see similar behavior to that seen before, and it can be corrected by adjusting the reward function.  
+In fact, in this task the target state is further away from the initial one, consequently I will have more steps that will give me negative cumulative rewards, so much so that the positive part of the reward given by fidelity becomes irrelevant.  
+By trying to give more importance to the positive part, for example by a factor of 10 (C1=0.16) than before, the training now seems much better and the algorithm seems to be learning.  
+(keeping the other parameters the same)
+
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/3a51f216-694b-4a70-9e80-7e771fd3da46" alt="image" width="300"/>
+
+Fidelity during the train: initially fluctuates a lot, but as it progresses it stabilizes and increases until it almost always reaches > 99%
+8 out of 10 tests achieved a fidelity > 99%
+The number of steps used for the episodes fluctuates a bit towards the end:
+[ 400, 347, 400, 400, 149, 400, 400, 400, 400, 400, 193, ... 290, 269, 56, 144, 400, 80, 135, 225, 290, 269, 97, 204, 225, 205, 247, 355, 169, 158, 90]
+This means that it probably still needs some training, which makes sense since we have to reach a further state than previously with Hadamar rotation.  
+
+Action plot towards one of the last episodes:
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/efa90aa2-4e37-4bd9-8b06-da4048733132" alt="image" width="800"/>  
+
+Here is the code almost identical to before:  
+
+```python
+import gymnasium as gym
+from gymnasium import spaces
+import qutip as qu
+import numpy as np
+import matplotlib.pyplot as plt
+from stable_baselines3 import PPO
+from stable_baselines3.common.env_checker import check_env
+
+class GymQubitEnv(gym.Env):
+    def __init__(self):
+        super(GymQubitEnv, self).__init__()
+        
+        self.dim = 2  # dimension of Hilbert space
+        self.u_max = 2 * np.pi * 0.3  # (300 MHz)
+        self.w = 2 * np.pi * 3.9  # (GHz)
+
+        # Define action and observation spaces
+        self.action_space = spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32)  # Continuous action space from -1 to +1, as suggested from gym
+        self.observation_space = spaces.Box(low=-1, high=1, shape=(4,), dtype=np.float32)  # Observation space, |v> have 2 real and 2 imaginary numbers -> 4
+
+        # time for mesolve()
+        self.time_end = 0.2
+
+        # threshold for fidelity to consider the target state reached
+        self.fidelity_threshold = 0.99 
+
+        self.current_step_in_the_episode = 0
+        self.max_steps = 400    # max episode length
+
+        # Reward parameters
+        self.C1 = 0.16
+        self.step_penalty = 0.001  # step penalty parameter 
+
+        
+        # Target state |1>
+        self.target_state = qu.basis(self.dim, 1)
+        # Current state
+        self.state = None
+        
+        # Hamiltonians
+        self.H_0 = self.w / 2 * qu.sigmaz()
+        self.H_1 = qu.sigmax()
+
+        #for debugging
+        self.episode_reward = 0 
+        self.rewards = []   # contains the cumulative reward of each episode
+        self.fidelities = []    # contains the final fidelity of each episode
+        self.highest_fidelity = 0  # track the highest fidelity achieved
+        self.highest_fidelity_episode = 0  # track the episode where highest fidelity is achieved
+        self.episode_actions = []  # Track actions for the current episode
+        self.actions = []  # Contains the actions taken in each episode
+        self.num_of_terminated = 0  # number of episodes terminated
+        self.num_of_truncated = 0   # number of truncated episodes
+        self.episode_steps = [] # number of steps for each episodes
+
+        self.seed = None
+
+        #def seed(self, seed=None):
+        #np.random.seed(seed)
+
+    def step(self, action):
+        alpha = action * self.u_max # the action is limited between -u_max , +u_max.
+        H = self.H_0 + alpha * self.H_1
+
+        result = qu.mesolve(H, self.state, [0, self.time_end])
+        self.state = result.states[-1] # result.states returns a list of state vectors (kets), is a a Qobj object. let's take the last one.
+
+        fidelity = qu.fidelity(self.state, self.target_state)
+        reward = self.C1 * fidelity - self.step_penalty * self.current_step_in_the_episode
+        self.current_step_in_the_episode += 1
+        terminated = fidelity >= self.fidelity_threshold    # if the goal is reached
+        truncated = self.current_step_in_the_episode >= self.max_steps  # if the episode ended without reaching the goal
+        #truncated=False
+
+        reward = float(reward.item())  # Ensure the reward is a float
+
+        # for debugging
+        #print(f"Step {self.current_step_in_the_episode}, Fidelity: {fidelity}")
+        self.episode_reward += reward
+        self.episode_actions.append(action)
+        if terminated or truncated:
+            self.fidelities.append(fidelity) # keep the final fidelity
+            if fidelity > self.highest_fidelity:
+                self.highest_fidelity = fidelity  # update highest fidelity
+                self.highest_fidelity_episode = len(self.rewards) + 1  # update the episode number (since rewards are appended after reset)
+            self.rewards.append(self.episode_reward) # keep the episode rewards
+            self.episode_reward = 0  # Reset the episode reward
+            self.episode_steps.append(self.current_step_in_the_episode) # Keep the number of steps used for this episode
+            self.current_step_in_the_episode = 0  # Reset the step counter
+            self.actions.append(self.episode_actions.copy()) # Append actions of the episode to the actions list
+            self.episode_actions = []  # Reset the actions for the new episode
+        if terminated:
+            self.num_of_terminated += 1
+        elif truncated:
+            self.num_of_truncated += 1
+
+        observation = self._get_obs()
+        
+        return observation, reward, bool(terminated), bool(truncated), {"state": self.state}
+
+    def reset(self, seed=None, options=None):
+        if seed is not None:
+            self.seed = seed
+        self.state = self.create_init_state(noise=False)
+
+        return self._get_obs(), {}
+
+    # if state=(p q)' with p = a + i*b and q = c + i*d -> return [a, b, c, d]
+    def _get_obs(self):
+        rho = self.state.full().flatten() # to have state vector as NumPy array and flatten into one dimensional array.[a+i*b c+i*d]
+        obs = np.concatenate((np.real(rho), np.imag(rho)))
+        return obs.astype(np.float32) # Gymnasium expects the observation to be of type float32
+
+    def create_init_state(self, noise):
+        if noise:
+            # Initial slight variations of |0>
+            perturbation = 0.1 * (np.random.rand(self.dim) - 0.5) + 0.1j * (np.random.rand(self.dim) - 0.5) # to get something like: [0.03208387-0.01834318j 0.0498474 -0.0339512j ]
+            perturbation_qobj = qu.Qobj(perturbation, dims=[[self.dim], [1]])
+            init_state = qu.basis(self.dim, 0) + perturbation_qobj
+            init_state = init_state.unit()  # to ensure unitary norm
+        else:
+            init_state = qu.basis(self.dim, 0)  # |0>
+        return init_state
+
+if __name__ == '__main__':
+    env = GymQubitEnv()
+
+    # Check if the environment follows Gym API
+    check_env(env, warn=True)
+
+    # Create the model
+    model = PPO('MlpPolicy', env, verbose=1)
+
+    # Train the model
+    model.learn(total_timesteps=200000)
+ 
+    # For debugging
+    print("\n Summary of the trining:")
+    for i, (r, f) in enumerate(zip(env.rewards, env.fidelities), start=1):
+        #print(f"Rewards for episode {i}: {r}")
+        print(f"Fidelity for episode {i}: {f}")
+        if i % 50 == 0:
+            avg_reward = np.mean(env.rewards[i-50:i])
+            avg_fidelity = np.mean(env.fidelities[i-50:i])
+            print(f"Episode {i}, Avg reward of last 50 episodes: {avg_reward}")
+            print(f"Episode {i}, Avg fidelity of last 50 episodes: {avg_fidelity}\n")
+
+    print(f"Highest fidelity achieved during training: {env.highest_fidelity}")
+    print(f"Highest fidelity was achieved in episode: {env.highest_fidelity_episode}")
+    print(f"Number of: Terminated episodes {env.num_of_terminated}, Truncated episodes {env.num_of_truncated}")
+    print(f"Number of steps used in each episode {env.episode_steps}")
+
+    # plot actions of some episodes
+    num_episodes = len(env.actions)
+    indices = [9, 19, num_episodes - 11, num_episodes - 1]  # 10th, 20th, (final-10)th, final episodes
+    fig, axs = plt.subplots(4, 1, figsize=(10, 8))
+    for i, idx in enumerate(indices):
+        axs[i].plot(env.actions[idx])
+        axs[i].set_title(f'Episode {idx + 1}')
+        axs[i].set_xlabel('Step')
+        axs[i].set_ylabel('Action')
+    plt.tight_layout()
+
+    # Test the model
+    num_tests = 10 # Number of tests to perform
+    max_steps = 400 # max number of steps in eatch test
+    figures = []  # List to store the figures
+    target_state = qu.basis(2, 1)
+
+    for test in range(num_tests):
+        print(f"\nTest {test + 1}")
+        obs, _ = env.reset()  # Reset the environment to get a random initial state
+        initial_state = env.state  # Save the initial state
+        
+        for _ in range(max_steps):
+            action, _states = model.predict(obs, deterministic=False)  # Get action from the model
+            obs, reward, terminated, truncated, info = env.step(action)  # Take a step in the environment
+            final_state = info["state"]  # Get the final state from the environment
+            if _ == max_steps-1:
+                print(f"Test episode not ended! final Fidelity achived: {qu.fidelity(final_state, target_state)}")
+            if terminated or truncated:  # Check if the episode has ended
+                # Compute fidelity between final state and target state
+                fidelity = qu.fidelity(final_state, target_state)
+                print("Final Fidelity:", fidelity)
+                # Visualize on the Bloch sphere
+                b = qu.Bloch()
+                b.add_states(initial_state)
+                b.add_states(final_state)
+                b.add_states(env.target_state)  #blue arrow
+                fig = plt.figure()  # Create a new figure
+                b.fig = fig  # Assign the figure to the Bloch sphere
+                b.render()  # Render the Bloch sphere
+                figures.append(fig)  # Store the figure in the list
+                break  # Exit the loop if the episode has ended         
+    # Show all figures together
+    plt.show()
+```
