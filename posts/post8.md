@@ -339,6 +339,9 @@ This is the graph of the actions (alpha) taken during one of the last episodes o
 
 <img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/c14e58df-5a1c-43ef-a403-de3499f47928" alt="image" width="800"/>  
 
+Note that the action chosen at the beginning of the step is used to evolve the system with mesolve(), so until the next step we can say that the value of the action remains constant.  
+This is represented graphically using the step() method of matplotlib.  
+
 ### State transfer - Not Gate
 You might think that to perform a different state transfer (for example Not Gate) you just need to compile the code above, modify the target state with |1> and start the training.  
 If you try to run the code like this you will notice that it doesn't work, the algorithm learns almost nothing during training (fidelity very different in each episode, it didn't grow constantly), almost all the episodes end with a truncated signal (because they reach the maximum number of steps) and the tests all have very low and different fidelity. 
