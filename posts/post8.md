@@ -285,9 +285,7 @@ if __name__ == '__main__':
                 b.add_states(initial_state)
                 #b.add_states(all_intermediate_states)  # Add all states to the Bloch sphere
                 b.add_states(final_state)   # comment this out if you use b.add_states(all_intermediate_states)
-                b.add_states(env.target_state) 
-                #colors = ['g'] + ['b'] * (len(all_states)) + ['r']
-                #b.colors = colors
+                b.add_states(env.target_state)
                 fig = plt.figure()  # Create a new figure
                 b.fig = fig  # Assign the figure to the Bloch sphere
                 b.render()  # Render the Bloch sphere
