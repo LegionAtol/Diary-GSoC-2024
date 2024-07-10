@@ -349,7 +349,7 @@ If we look at the number of steps used in each episode:
 [400, 400, 141, 400, 353, 341,...400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400]  
 Furthermore, by plotting the actions taken towards one of the last episodes, they appear almost random.
 
-<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/bcf0990d-01e0-441f-8522-e63c28a4739f" alt="image" width="800"/>
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/554378ac-5bf7-4972-a309-887fffff7af4" alt="image" width="800"/>  
 
 We can see similar behavior to that seen before, and it can be corrected by adjusting the reward function.  
 In fact, in this task the target state is further away from the initial one, consequently I will have more steps that will give me negative cumulative rewards, so much so that the positive part of the reward given by fidelity becomes irrelevant.  
