@@ -325,7 +325,8 @@ An example of the steps used in each episode:
 As you can see, the number of steps used for each episode decreases until the minimum number is found.  
 
 This is the graph of the actions (alpha) taken during one of the last episodes of the training, in which it already reached fidelity > 99%  
-<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/5129f124-915d-4f9e-a486-5212565d9534" alt="image" width="800"/>
+
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/c14e58df-5a1c-43ef-a403-de3499f47928" alt="image" width="800"/>  
 
 ### State transfer - Not Gate
 You might think that to perform a different state transfer (for example Not Gate) you just need to compile the code above, modify the target state with |1> and start the training.  
