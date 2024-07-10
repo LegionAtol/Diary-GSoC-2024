@@ -398,18 +398,18 @@ class GymQubitEnv(gym.Env):
         self.fidelity_threshold = 0.99 
 
         self.current_step_in_the_episode = 0
-        self.max_steps = 400    # max episode length
+        self.max_steps = 400    # max episode length (max number of steps for one episode)
 
         # Reward parameters
         self.C1 = 0.16
+        #self.C2 = 3.9e-06
         self.step_penalty = 0.001  # step penalty parameter 
 
         
         # Target state |1>
         self.target_state = qu.basis(self.dim, 1)
-        # Current state
-        self.state = None
-        
+        self.state = None   # actual state
+
         # Hamiltonians
         self.H_0 = self.w / 2 * qu.sigmaz()
         self.H_1 = qu.sigmax()
@@ -425,20 +425,19 @@ class GymQubitEnv(gym.Env):
         self.num_of_terminated = 0  # number of episodes terminated
         self.num_of_truncated = 0   # number of truncated episodes
         self.episode_steps = [] # number of steps for each episodes
-
+        
         self.seed = None
 
-        #def seed(self, seed=None):
-        #np.random.seed(seed)
-
     def step(self, action):
-        alpha = action * self.u_max # the action is limited between -u_max , +u_max.
+        action = action[0]  # action is an array -> extract it's value with [0]
+        alpha = action * self.u_max # the action is limited between -u_max , +u_max. 
         H = self.H_0 + alpha * self.H_1
 
         result = qu.mesolve(H, self.state, [0, self.time_end])
         self.state = result.states[-1] # result.states returns a list of state vectors (kets), is a a Qobj object. let's take the last one.
 
         fidelity = qu.fidelity(self.state, self.target_state)
+        #reward = fidelity
         reward = self.C1 * fidelity - self.step_penalty * self.current_step_in_the_episode
         self.current_step_in_the_episode += 1
         terminated = fidelity >= self.fidelity_threshold    # if the goal is reached
@@ -505,7 +504,7 @@ if __name__ == '__main__':
     model = PPO('MlpPolicy', env, verbose=1)
 
     # Train the model
-    model.learn(total_timesteps=200000)
+    model.learn(total_timesteps=200000) #200000
  
     # For debugging
     print("\n Summary of the trining:")
@@ -522,44 +521,53 @@ if __name__ == '__main__':
     print(f"Highest fidelity was achieved in episode: {env.highest_fidelity_episode}")
     print(f"Number of: Terminated episodes {env.num_of_terminated}, Truncated episodes {env.num_of_truncated}")
     print(f"Number of steps used in each episode {env.episode_steps}")
-
-    # plot actions of some episodes
+    
+    # Plot actions of some episodes
+    # the action chosen at each step remains constant during the evolution of the system with mesolve, 
+    # therefore in the plot I represent them constant 
     num_episodes = len(env.actions)
     indices = [9, 19, num_episodes - 11, num_episodes - 1]  # 10th, 20th, (final-10)th, final episodes
     fig, axs = plt.subplots(4, 1, figsize=(10, 8))
     for i, idx in enumerate(indices):
-        axs[i].plot(env.actions[idx])
+        steps = np.arange(len(env.actions[idx]))  # Create an array of step indices
+        actions = env.actions[idx]  # Extract action values from the array  
+        # Plot each action as a constant value over its interval
+        axs[i].step(steps, actions, where='post')
         axs[i].set_title(f'Episode {idx + 1}')
         axs[i].set_xlabel('Step')
         axs[i].set_ylabel('Action')
     plt.tight_layout()
+    #print(f"The actions of episode{num_episodes - 1}\n {env.actions[num_episodes - 1]}")   #to see the numerical values ​​of the shares
 
     # Test the model
     num_tests = 10 # Number of tests to perform
     max_steps = 400 # max number of steps in eatch test
     figures = []  # List to store the figures
-    target_state = qu.basis(2, 1)
+    target_state = qu.basis(env.dim, 1)
 
     for test in range(num_tests):
         print(f"\nTest {test + 1}")
         obs, _ = env.reset()  # Reset the environment to get a random initial state
         initial_state = env.state  # Save the initial state
-        
+        #all_intermediate_states = []  # if you want to view all intermediate states
         for _ in range(max_steps):
             action, _states = model.predict(obs, deterministic=False)  # Get action from the model
             obs, reward, terminated, truncated, info = env.step(action)  # Take a step in the environment
-            final_state = info["state"]  # Get the final state from the environment
+            #all_intermediate_states.append(info["state"])  # Collect all final states from the steps
             if _ == max_steps-1:
+                final_state = info["state"]  # Get the final state from the environment
                 print(f"Test episode not ended! final Fidelity achived: {qu.fidelity(final_state, target_state)}")
             if terminated or truncated:  # Check if the episode has ended
                 # Compute fidelity between final state and target state
+                final_state = info["state"]  # Get the final state from the environment
                 fidelity = qu.fidelity(final_state, target_state)
                 print("Final Fidelity:", fidelity)
                 # Visualize on the Bloch sphere
                 b = qu.Bloch()
                 b.add_states(initial_state)
-                b.add_states(final_state)
-                b.add_states(env.target_state)  #blue arrow
+                #b.add_states(all_intermediate_states)  # Add all states to the Bloch sphere
+                b.add_states(final_state)   # comment this out if you use b.add_states(all_intermediate_states)
+                b.add_states(env.target_state) 
                 fig = plt.figure()  # Create a new figure
                 b.fig = fig  # Assign the figure to the Bloch sphere
                 b.render()  # Render the Bloch sphere
