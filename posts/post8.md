@@ -200,16 +200,24 @@ class GymQubitEnv(gym.Env):
         obs = np.concatenate((np.real(rho), np.imag(rho)))
         return obs.astype(np.float32) # Gymnasium expects the observation to be of type float32
 
-    def create_init_state(self, noise):
-        if noise:
-            # Initial slight variations of |0>
-            perturbation = 0.1 * (np.random.rand(self.dim) - 0.5) + 0.1j * (np.random.rand(self.dim) - 0.5) # to get something like: [0.03208387-0.01834318j 0.0498474 -0.0339512j ]
-            perturbation_qobj = qu.Qobj(perturbation, dims=[[self.dim], [1]])
-            init_state = qu.basis(self.dim, 0) + perturbation_qobj
-            init_state = init_state.unit()  # to ensure unitary norm
+    def create_init_state(self, noise=False, random=True):
+        if random:
+            # Randomly choose |0> or |1> with equal probability
+            if np.random.rand() > 0.5:
+                init_state = qu.basis(self.dim, 1)  # |1>
+            else:
+                init_state = qu.basis(self.dim, 0)  # |0>
         else:
-            init_state = qu.basis(self.dim, 0)  # |0>
+            if noise:
+                # Initial slight variations of |0>
+                perturbation = 0.1 * (np.random.rand(self.dim) - 0.5) + 0.1j * (np.random.rand(self.dim) - 0.5) # to get something like: [0.03208387-0.01834318j 0.0498474 -0.0339512j ]
+                perturbation_qobj = qu.Qobj(perturbation, dims=[[self.dim], [1]])
+                init_state = qu.basis(self.dim, 0) + perturbation_qobj
+                init_state = init_state.unit()  # to ensure unitary norm
+            else:
+                init_state = qu.basis(self.dim, 0)  # |0>
         return init_state
+
 
 if __name__ == '__main__':
     env = GymQubitEnv()
@@ -285,7 +293,7 @@ if __name__ == '__main__':
                 b.add_states(initial_state)
                 #b.add_states(all_intermediate_states)  # Add all states to the Bloch sphere
                 b.add_states(final_state)   # comment this out if you use b.add_states(all_intermediate_states)
-                b.add_states(env.target_state)
+                b.add_states(env.target_state) 
                 fig = plt.figure()  # Create a new figure
                 b.fig = fig  # Assign the figure to the Bloch sphere
                 b.render()  # Render the Bloch sphere
@@ -341,6 +349,9 @@ This is the graph of the actions (alpha) taken during one of the last episodes o
 
 Note that the action chosen at the beginning of the step is used to evolve the system with mesolve(), so until the next step we can say that the value of the action remains constant.  
 This is represented graphically using the step() method of matplotlib.  
+
+Furthermore, if you set the parameter random = True of create_init_state() in practice the initial state is chosen randomly between |1> and |0>  
+By running the train you can notice that in the final tests a fidelity > 99% is always achieved and the algorithm correctly learns to reach the target state starting from one of the two initial states.  
 
 ### State transfer - Not Gate
 You might think that to perform a different state transfer (for example Not Gate) you just need to compile the code above, modify the target state with |1> and start the training.  
