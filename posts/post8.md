@@ -365,7 +365,8 @@ The number of steps used for the episodes fluctuates a bit towards the end:
 This means that it probably still needs some training, which makes sense since we have to reach a further state than previously with Hadamar rotation.  
 
 Action plot towards one of the last episodes:
-<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/efa90aa2-4e37-4bd9-8b06-da4048733132" alt="image" width="800"/>  
+
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/9d379941-a22c-4172-9d81-8047f09d0852" alt="image" width="800"/>  
 
 Here is the code almost identical to before:  
 
