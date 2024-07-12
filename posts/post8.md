@@ -354,7 +354,7 @@ This is the graphical representation of the final states reached at each step (1
 
 <img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/393afd07-ef61-4041-bc3c-d755e1d93026" alt="image" width="300"/> 
 
-During the training with the total_timesteps = 200000, it could be noted in the terminal, thanks to the information from Gymnasium, that the average length of the episode was still decreasing even towards the end of the training.  
+During the training with the total_timesteps = 200000, it could be noted in the terminal window, thanks to the information from Gymnasium, that the average length of the episode was still decreasing even towards the end of the training.  
 By trying to extend the total duration to total_timesteps = 250000, in fact, what you can notice is that the maximum fidelity has remained approximately unchanged, greater than 99%, but now the algorithm has found the minimum number of steps (13) that it could use, keeping the other parameters of the qubit fixed.  
 
 <img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/51adc6e4-5ea6-45e3-9408-bd944e35c5e7" alt="image" width="800"/>  
