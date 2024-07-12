@@ -335,7 +335,7 @@ By instead giving a reward that also includes a penalty term proportional to the
 
 By running the code, finally various tests are performed after the model is trained, this is the Bloch sphere with initial state (up), final state (orange arrow) and target state |+>. The fidelity obtained in this specific test is > 99.8%
 
-<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/13cac917-5be8-4b70-85d3-b78bd9e8a99b" alt="image" width="300"/>
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/13cac917-5be8-4b70-85d3-b78bd9e8a99b" alt="image" width="300"/>  
 
 Some useful data from this training:  
 Number of Terminated episodes 6769, Truncated episodes 9.  
@@ -349,6 +349,15 @@ This is the graph of the actions (alpha) taken during one of the last episodes o
 
 Note that the action chosen at the beginning of the step is used to evolve the system with mesolve(), so until the next step we can say that the value of the action remains constant.  
 This is represented graphically using the step() method of matplotlib.  
+
+This is the graphical representation of the final states reached at each step (16 in total)  
+
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/393afd07-ef61-4041-bc3c-d755e1d93026" alt="image" width="300"/> 
+
+During the training with the total_timesteps = 200000, it could be noted in the terminal, thanks to the information from Gymnasium, that the average length of the episode was still decreasing even towards the end of the training.  
+By trying to extend the total duration to total_timesteps = 250000, in fact, what you can notice is that the maximum fidelity has remained approximately unchanged, greater than 99%, but now the algorithm has found the minimum number of steps (13) that it could use, keeping the other parameters of the qubit fixed.  
+
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/51adc6e4-5ea6-45e3-9408-bd944e35c5e7" alt="image" width="800"/>  
 
 Furthermore, if you set the parameter random = True of create_init_state() in practice the initial state is chosen randomly between |1> and |0>  
 By running the train you can notice that in the final tests a fidelity > 99% is always achieved and the algorithm correctly learns to reach the target state starting from one of the two initial states.  
