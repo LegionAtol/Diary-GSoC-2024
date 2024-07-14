@@ -322,11 +322,7 @@ The solution was to add a penalty term to the reward: subtract an amount proport
 
 Some might argue that even with the previous reward = const. * fidelity the algorithm should have learned to arrive at the target state, as states in which it reached a fidelity of over 99% could be observed in the training episodes.  
 However, these cases that could be observed at the beginning of the training (because the algorithm also acts randomly to carry out exploration) were reached in much less than 400 maximum steps and the reward obtained overall could be lower overall compared to using all and 400 steps and still go in the right direction.  
-And let's not forget that the algorithm only learns by observing the cumulative rewards of the episodes, it doesn't know what a "target state" is.  
-
-Some might argue that even with the previous reward = const. * fidelity the algorithm should have learned to arrive at the target state, as states in which it reached a fidelity of over 99% could be observed in the training episodes.  
-However, these cases that could be observed at the beginning of the training (because the algorithm also acts randomly to carry out exploration) were reached in much less than 400 maximum steps and the reward obtained overall could be lower overall compared to using all and 400 steps and still go in the right direction.  
-And let's not forget that the algorithm only learns by observing the cumulative rewards of the episodes, it doesn't know what a "target state" is.  
+And let's not forget that the algorithm only learns by observing the cumulative rewards of the episodes, it doesn't know what a "target state" is.   
 
 Another objection, however, could be:  
 the algorithm could then learn to reach the target state in a maximum of 400 steps so as to use the maximum number of steps (therefore having more positive rewards) and also have increasingly greater fidelity.
