@@ -288,4 +288,8 @@ if __name__ == '__main__':
                 break  # Exit the loop if the episode has ended         
     # Show all figures together
     plt.show()
-```
+```  
+
+If you try to set the system's mesolve step evolution time to half, the algorithm will no longer be able to reach the final state with just one step, but by carrying out the training as expected it will find the minimum steps to be 2.  
+However, the value of the actions for the two steps is not necessarily the same.  
+If you want to try to have the same value for the two actions (so as to think of the two smaller steps as a single longer step), you could probably modify the reward function so as to penalize the actions the more different they are.  
