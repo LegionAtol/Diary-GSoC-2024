@@ -56,7 +56,7 @@ By doing so, however, you have a very **large actions space** and the algorithm 
 Perhaps it can be thought of as if they were local minima due to the fact that the algorithm was unable to explore the entire state-action space well and increasing training time does not appear to further reduce steps per episode).  
 
 Gymnasium and RL Algorithms seem to work best by normalizing the **Box** function range for actions **between -1 and 1**.  
-Then I used a constant **u_max** to multiply by the action (in our case we know that the optimal value is close to 12, so I use u_max = 13 to give it a slightly wider range)  
+Then I used a constant **u_max** to multiply by the action (in our case we know that the optimal value is close to 12, so I use u_max = 13 to give it a slightly wider range) so as to have a larger "virtual" interval [-13, 13]  
 With a train of total_timesteps=200000 and max step = 100, it reaches the end of the train with still variation in the episodes as visible:  
 Number of steps per episode:  
 [40,…. 5, 10, 21, 22, 3, 1, 1, 1, 1, 1, 3, 1, 3, 1, 1, 10, 6, 1, 8, 3, 15, 1, 23, 1, 3, 5]  
