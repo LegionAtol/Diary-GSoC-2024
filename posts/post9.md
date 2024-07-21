@@ -298,6 +298,7 @@ If you want to try to have the same value for the two actions (so as to think of
 Typically in QOC you can choose a control function with parameters to optimize and this function is applied to the control Hamiltonian.  
 Until now we have used as a control function a constant value (alpha) chosen by the agent (the policy) at each step.  
 Now the idea is to use, for example, a **sinusoidal control function** and have the agent find three parameters (amplitude, frequency and phase).  
+
 To do this I modified the form of the gymnasium actions:  
 spaces.Box(low=-1, high=1, shape=(3,) ...  
 So now it takes three values ​​at a time.  
