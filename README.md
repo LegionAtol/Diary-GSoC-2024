@@ -24,5 +24,6 @@ If you are interested in the stages of the project's development, take a look at
 8. [Qubit example v1](posts/post8.md)
 9. [Qubit example v2](posts/post9.md)
 9. [Qubit example v3](posts/post10.md)
+10. [2 Qubits example v1](posts/post11.md)
 
 
