@@ -41,14 +41,12 @@ Process:
 Repeat the process. M is the number of time steps for each iteration, used to divide the total evolution time of the system into M steps. There are R iterations in total.
 
 In the function cy_grape_inner(), the controls u are updated.  
-To calculate how to update the control fields, we use $du=-overlap(P,Q)$  
+To calculate how to update the control fields, they use $du=-overlap(P,Q)$  
 $overlap = |\frac{tra(U_{targ}^* U_{final})}{N}|$  
-This overlap could be our reward function from an RL perspective.  
+This overlap could be our reward function from an **RL perspective**.  
 The closer it is to 1, the more similar the two operators are.  
-
 Note that in cy_grape_unitary() there is first a loop on m to calculate all the propagators $U_f$ and $U_b$ (and their respective lists) in order to then calculate the gradients in cy_grape_inner() which again loops on m.  
-
-**From an RL perspective** there is no need to have gradients, the RL agent will decide how to update future actions, so $U_{f,list}$ and $U_{b,list}$ will not be needed.  
+From an RL perspective there is no need to have gradients, the RL agent will decide how to update future actions, so $U_{f,list}$ and $U_{b,list}$ will not be needed.  
 
 The following code is an example of two qubits where the RL agent tries to learn the CNOT gate.  
 It is simplified because it does not yet exploit all the features of Qutip and the various modules.  
