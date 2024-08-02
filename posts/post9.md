@@ -523,3 +523,199 @@ if __name__ == '__main__':
     # Show all figures together
     plt.show()
 ```
+
+### Operators
+
+In this code I tried to use U operators, propagator() and metrics.fidelity() functions instead of mesolve()  
+Also I used the identity matrix as the initial U operator, hadamard_transform() as the target operator and modified the observation space.  
+
+```python
+import gymnasium as gym
+from gymnasium import spaces
+import qutip as qu
+import numpy as np
+import qutip_qip as qip
+from qutip.qip.operations import *
+import matplotlib.pyplot as plt
+from stable_baselines3 import PPO
+from stable_baselines3.common.env_checker import check_env
+
+class GymQubitEnv(gym.Env):
+    def __init__(self):
+        super(GymQubitEnv, self).__init__()
+        
+        self.dim = 2  # dimension of Hilbert space
+        self.u_max = 13 
+        self.w = 2 * np.pi * 3.9  # (GHz)
+
+        # time for mesolve()
+        self.step_time = 0.1
+
+        # threshold for fidelity to consider the target state reached
+        self.fidelity_threshold = 0.999 
+
+        self.current_step_in_the_episode = 0
+        self.max_steps = 100    # max episode length (max number of steps for one episode)
+
+        # Reward parameters
+        self.C1 = 1    
+        self.step_penalty = 1  # step penalty parameter
+
+        self.target_operator = hadamard_transform()
+        #self.state = None   # actual state
+
+        self.U_current = None    #To track the operator's evolution at each step
+        self.U_final = None
+
+        # Hamiltonians
+        self.H_0 = self.w / 2 * qu.sigmaz()
+        self.H_1 = qu.sigmax()
+        self.H_tot = None
+
+        self.N = self.target_operator.shape[0]
+        self.dim = 2 * self.N**2  # (2*N^2 dim,  real and immaginary part)
+        # Define action and observation spaces
+        self.action_space = gym.spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32)  # Continuous action space from -1 to +1, as suggested from gym
+        self.observation_space = gym.spaces.Box(low=-1, high=1, shape=(self.dim,))
+
+
+        #for debugging
+        self.episode_reward = 0 
+        self.rewards = []   # contains the cumulative reward of each episode
+        self.fidelities = []    # contains the final fidelity of each episode
+        self.highest_fidelity = 0  # track the highest fidelity achieved
+        self.highest_fidelity_episode = 0  # track the episode where highest fidelity is achieved
+        self.episode_actions = []  # Track actions for the current episode
+        self.actions = []  # Contains the actions taken in each episode
+        self.num_of_terminated = 0  # number of episodes terminated
+        self.num_of_truncated = 0   # number of truncated episodes
+        self.episode_steps = [] # number of steps for each episodes
+        
+        self.seed = None
+
+    def step(self, action):
+        action = action[0]  # action is an array -> extract it's value with [0]
+        alpha = action * 15
+
+        self.H_tot = self.H_0 + alpha * self.H_1
+
+        #result = qu.mesolve(H, self.state, [0, self.step_time])
+        #self.state = result.states[-1] # result.states returns a list of state vectors (kets), is a a Qobj object. let's take the last one.
+
+        self.U_current = qu.propagator(self.H_tot, self.step_time)
+        fidelity = qu.metrics.fidelity(self.U_current, self.target_operator)
+
+        reward = self.C1 * fidelity - self.step_penalty
+        self.current_step_in_the_episode += 1
+        terminated = fidelity >= self.fidelity_threshold    # if the goal is reached
+        truncated = self.current_step_in_the_episode >= self.max_steps  # if the episode ended without reaching the goal
+        #print(self.U_current)
+
+        # for debugging
+        #print(f"Step {self.current_step_in_the_episode}, Fidelity: {fidelity}")
+        self.episode_reward += reward
+        self.episode_actions.append(action)
+        if terminated or truncated:
+            self.fidelities.append(fidelity) # keep the final fidelity
+            if fidelity > self.highest_fidelity:
+                self.highest_fidelity = fidelity  # update highest fidelity
+                self.highest_fidelity_episode = len(self.rewards) + 1  # update the episode number (since rewards are appended after reset)
+            self.rewards.append(self.episode_reward) # keep the episode rewards
+            self.episode_reward = 0  # Reset the episode reward
+            self.episode_steps.append(self.current_step_in_the_episode) # Keep the number of steps used for this episode
+            self.current_step_in_the_episode = 0  # Reset the step counter
+            self.actions.append(self.episode_actions.copy()) # Append actions of the episode to the actions list
+            self.episode_actions = []  # Reset the actions for the new episode
+        if terminated:
+            self.num_of_terminated += 1
+            self.U_final = self.U_current   # for debug
+        elif truncated:
+            self.num_of_truncated += 1
+
+        observation = self._get_obs()
+        
+        return observation, reward, bool(terminated), bool(truncated), {}
+
+    def reset(self, seed=None, options=None):
+        if seed is not None:
+            self.seed = seed
+        self.U_current = self.create_init_state()
+        #print("reset")
+        return self._get_obs(), {}
+
+    # if state=(p q)' with p = a + i*b and q = c + i*d -> return [a, b, c, d]
+    def _get_obs(self):
+        real_part = np.real(self.U_current.full())
+        imag_part = np.imag(self.U_current.full())
+        obs = np.concatenate((real_part.flatten(), imag_part.flatten()))
+        return obs.astype(np.float32) # Gymnasium expects the observation to be of type float32
+    
+    def create_init_state(self, noise=False, random=False):
+        U = qu.qeye(2)
+        return U
+
+
+if __name__ == '__main__':
+    env = GymQubitEnv()
+
+    # Check if the environment follows Gym API
+    check_env(env, warn=True)
+
+    # Create the model
+    model = PPO('MlpPolicy', env, verbose=1)
+
+    # Train the model
+    model.learn(total_timesteps=80000) #100000
+ 
+    # For debugging
+    print("\n Summary of the trining:")
+    for i, (r, f) in enumerate(zip(env.rewards, env.fidelities), start=1):
+        #print(f"Rewards for episode {i}: {r}")
+        print(f"Fidelity for episode {i}: {f}")
+        if i % 50 == 0:
+            avg_reward = np.mean(env.rewards[i-50:i])
+            avg_fidelity = np.mean(env.fidelities[i-50:i])
+            print(f"Episode {i}, Avg reward of last 50 episodes: {avg_reward}")
+            print(f"Episode {i}, Avg fidelity of last 50 episodes: {avg_fidelity}\n")
+
+    print(f"Highest fidelity achieved during training: {env.highest_fidelity}")
+    print(f"Highest fidelity was achieved in episode: {env.highest_fidelity_episode}")
+    print(f"Number of: Terminated episodes {env.num_of_terminated}, Truncated episodes {env.num_of_truncated}")
+    print(f"Number of steps used in each episode {env.episode_steps}")
+    
+    # Plot actions of some episodes
+    # the action chosen at each step remains constant during the evolution of the system with mesolve, 
+    # therefore in the plot I represent them constant 
+    num_episodes = len(env.actions)
+    indices = [9, 19, num_episodes - 11, num_episodes - 1]  # 10th, 20th, (final-10)th, final episodes
+    fig, axs = plt.subplots(4, 1, figsize=(10, 8))
+    for i, idx in enumerate(indices):
+        steps = np.arange(len(env.actions[idx]))  # Create an array of step indices
+        actions = env.actions[idx]  # Extract action values from the array  
+        # Plot each action as a constant value over its interval
+        axs[i].step(steps, actions, where='post')
+        axs[i].set_title(f'Episode {idx + 1}')
+        axs[i].set_xlabel('Step')
+        axs[i].set_ylabel('Action')
+        print(f"The actions of episode{num_episodes - 1}\n {env.actions[num_episodes - 1]}")   #to see the numerical values ​​of the shares
+    plt.tight_layout()
+    #print(f"The actions of episode{num_episodes - 1}\n {env.actions[num_episodes - 1]}")   #to see the numerical values ​​of the shares
+
+
+    # Test 
+    init_state = qu.basis(2, 0)
+    final_state = env.U_final @ init_state
+
+    print("U_final",env.U_final)
+    f = qu.metrics.fidelity(env.U_current, env.target_operator)
+    print(f"Final fidelity between U_final and target_operator: {f}")
+
+    # Visualize on the Bloch sphere
+    b = qu.Bloch()
+    b.add_states(init_state)
+    b.add_states(final_state)   
+    fig = plt.figure()
+    b.fig = fig
+    b.render()
+    plt.show()
+```
