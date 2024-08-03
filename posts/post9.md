@@ -524,8 +524,9 @@ if __name__ == '__main__':
     plt.show()
 ```
 
-### Operators
+### Quantum Gate Synthesis - Operators
 
+The goal is to optimize unit operator (U) to get a specific target gate.  
 In this code I tried to use U operators, propagator() and metrics.fidelity() functions instead of mesolve()  
 Also I used the identity matrix as the initial U operator, hadamard_transform() as the target operator and modified the observation space.  
 
