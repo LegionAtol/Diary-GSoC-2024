@@ -719,3 +719,16 @@ if __name__ == '__main__':
     b.render()
     plt.show()
 ```
+
+The following is the image produced by the test part of the code using as initial state:  
+init_state = qu.basis(2, 0)  
+which is then multiplied by the final U operator obtained during training.  
+
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/6c7de1e2-11bd-4503-b069-618cd93d5571" alt="image" width="300"/>  
+
+Instead the following image is produced by the test part in the code using as initial state:  
+init_state = qu.basis(2, 1)  
+which is then multiplied by the final U operator obtained during training.  
+As you can see the algorithm has learned the Hadamard gate.  
+
+<img src="https://github.com/LegionAtol/Diary-GSoC-2024/assets/118752873/e943a7ce-8a52-4e52-b9fa-5e93e6e4a70c" alt="image" width="300"/>
