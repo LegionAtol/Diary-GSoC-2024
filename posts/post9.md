@@ -549,7 +549,7 @@ class GymQubitEnv(gym.Env):
         self.w = 2 * np.pi * 3.9  # (GHz)
 
         # time for mesolve()
-        self.step_time = 0.1
+        self.step_time = 0.09
 
         # threshold for fidelity to consider the target state reached
         self.fidelity_threshold = 0.999 
