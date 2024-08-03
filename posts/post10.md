@@ -503,13 +503,14 @@ The user must know almost exactly the minimum/optimal duration of the step, if h
 However, if you can set a step time in advance, or an optimal episode consisting of a single step, you would obtain a single value (or vector) of optimized_parameters in output (it would be an action of the RL agent).  
 
 Case 2)  
-Perhaps the 0.1 in linspace(0, 0.1, 100) can be understood as the maximum duration of the episode.  
+More correctly the 0.1 in linspace(0, 0.1, 100) can be understood as the maximum duration of the episode.  
 If this were the case, then the step duration would be = 0.1 / 100 but with such a short step, the algorithm will find a better episode with a duration of 100 steps.  
-However, the sum of the times of these 100 (shorter) steps should be equivalent to the initial case in which we had a single step lasting 0.1 but with the added advantage of having only one action/control value, now instead we will have 100 From a practical point of view, perhaps it may be convenient to modify the reward function in order to incentivize the algorithm to use the most similar actions possible between the various steps.  
+However, the sum of the times of these 100 (shorter) steps should be equivalent to the initial case in which we had a single step lasting 0.1 but with the added advantage of having only one action/control value, now instead we will have 100  
+From a practical point of view, perhaps it may be convenient to modify the reward function in order to incentivize the algorithm to use the most similar actions possible between the various steps.  
 This approach of using many smaller steps can be beneficial to the user:  
 Even if the user were to set, for example, linspace(0, 0.15, 100) therefore with steps of longer duration,
 the algorithm should find about 60 steps for the shortest episode.  
-If instead the user sets tlist = np.linspace(0, 0.1, 130) I think more steps are needed, the algorithm will find approximately the 100 minimum steps.  
+If instead the user sets tlist = np.linspace(0, 0.1, 130) thinking that more steps are needed, the algorithm will find approximately the 100 minimum steps.  
 The downside is that we will have many steps and therefore many actions, i.e. many values ​​of optimized_parameters even if they are similar to each other.  
 
 The code for the second approach is the one above.   
