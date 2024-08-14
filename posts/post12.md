@@ -3,7 +3,7 @@
 In this section we see three files:  
 test_result. py to run the pytests  
 pulse_optim.py prepares the inputs to call the various algorithms  
-_rl.py will contain the heart of the RL algorithm  
+_rl.py will contain the core of the RL algorithm  
 
 Mentor Patrick provided me with templates with idnications (TODO) to speed up the creation of the test and the integration with the qoc code in an easier way.  
 let's see a piece of code to run the pytests in a similar way to how it is already done in qoc with the other algorithms (Crab, Jax etc...)  
