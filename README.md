@@ -25,5 +25,6 @@ If you are interested in the stages of the project's development, take a look at
 9. [Qubit example v2](posts/post9.md)
 9. [Qubit example v3](posts/post10.md)
 10. [2 Qubits example v1](posts/post11.md)
+11. [Test and integration with qoc](posts/post12.md)
 
 
