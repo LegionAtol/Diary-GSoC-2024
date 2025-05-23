@@ -28,4 +28,5 @@ If you are interested in the stages of the project's development, take a look at
 11. [Test and integration with qoc](posts/post12.md)
 12. [Custom Early Stopping](posts/post13.md)
 
-
+## Short Presentation
+A short visual presentation of the project is available [here](short_presentation.pdf).
